@@ -213,6 +213,42 @@ html,body{transition:background .3s,color .3s}
   </ul>
 </section>
 
+<!-- Idea clave A: interfaz común (analogía del auto) -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Concepto clave · Runnable</span>
+  <h2>Runnable = interfaz común: ¿qué significa eso?</h2>
+  <p class="big">Un <b>Runnable</b> es una pieza que se usa <b>de la misma manera que todas las demás</b>, aunque por dentro sean muy distintas. A eso se le llama <b>interfaz común</b>.</p>
+  <div class="grid" style="grid-template-columns:1fr;max-width:60rem;width:100%;align-self:center">
+    <div class="card">
+      <h3>🚗 Manejar un auto</h3>
+      <p>Si sabés manejar uno, manejás cualquiera: <b>volante, acelerador y freno</b> están siempre. No importa qué motor tenga adentro.</p>
+    </div>
+  </div>
+  <p class="note">Con los Runnables pasa lo mismo: <b>no necesitás saber cómo funciona cada pieza por dentro</b>. Solo necesitás saber cómo se conecta y cómo se usa.</p>
+</section>
+
+<!-- Idea clave B: Runnable = interfaz común -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Concepto clave · Runnable</span>
+  <h2>Los Runnables de LangChain: mismos botones para todos</h2>
+  <p>En LangChain cada pieza hace algo distinto: una arma el mensaje, otra "piensa" y otra ordena la respuesta. Pero <b>las tres son Runnables</b>, así que <b>todas tienen los mismos "botones"</b>.</p>
+  <div class="flow">
+    <div class="node">Prompt<small>es un Runnable · arma el mensaje</small></div>
+    <span class="arrow">+</span>
+    <div class="node m">Modelo<small>es un Runnable · "piensa"</small></div>
+    <span class="arrow">+</span>
+    <div class="node o">Parser<small>es un Runnable · ordena la respuesta</small></div>
+  </div>
+  <p class="sub" style="text-align:center;font-size:clamp(.95rem,1.7vw,1.3rem)">↓ por ser Runnables, las tres tienen exactamente los mismos botones ↓</p>
+  <table>
+    <tr><th>Botón</th><th>Qué significa, en simple</th></tr>
+    <tr><td>invoke</td><td>"Ejecutá esto <b>una vez</b> y dame el resultado"</td></tr>
+    <tr><td>batch</td><td>"Ejecutá esto con <b>muchos datos</b> a la vez"</td></tr>
+    <tr><td>stream</td><td>"Mostrame la respuesta <b>mientras se va escribiendo</b>"</td></tr>
+  </table>
+  <p class="note"><b>Runnable = interfaz común.</b> Como todas se manejan igual, se pueden <b>enganchar una detrás de otra</b> (con el símbolo <code>|</code>) como bloques de Lego. Eso es una cadena.</p>
+</section>
+
 <!-- 3 -->
 <section class="slide">
   <h2>Los 3 componentes</h2>
@@ -894,14 +930,14 @@ asyncio.run(main())</pre>
     while (overflows() && z > 0.4) { z = Math.round((z - 0.03) * 100) / 100; apply(); }
   }
   const sections = [
-    {name:'Fundamentos',      from:2,  to:8},
-    {name:'Input shaping',    from:9,  to:9},
-    {name:'Paralelismo',      from:10, to:13},
-    {name:'Buenas prácticas', from:14, to:16},
-    {name:'Ejercicios',       from:17, to:18},
-    {name:'Producción',       from:19, to:23},
-    {name:'Ejercicio 3',      from:24, to:27},
-    {name:'Entrega',          from:28, to:28}
+    {name:'Fundamentos',      from:2,  to:10},
+    {name:'Input shaping',    from:11, to:11},
+    {name:'Paralelismo',      from:12, to:15},
+    {name:'Buenas prácticas', from:16, to:18},
+    {name:'Ejercicios',       from:19, to:20},
+    {name:'Producción',       from:21, to:25},
+    {name:'Ejercicio 3',      from:26, to:29},
+    {name:'Entrega',          from:30, to:30}
   ];
   let i = 0;
   const bar = document.getElementById('bar'), count = document.getElementById('count');
