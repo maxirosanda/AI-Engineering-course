@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clase: Embeddings, Chunking y ChromaDB</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root{
+    --orange:#ff6329; --orange-d:#e24d14; --cream:#fdfbf6; --ink:#1e0b08; --muted:#6f5f58;
+    --card:#ffffff; --code-bg:#1e0b08; --th-bg:#1e0b08; --btn-dark:#1e0b08; --btn-hover:#3a1b14; --pillbg:#1e0b08; --node-line:#1e0b08; --hover:#f6efe6; --body:#3a2a25; --glow2:#fff1e8; --okbg:#dcf5e6; --badbg:#fde1e1; --line:#eadfd3; --peach:#ffe9de; --ok:#1f9d55; --bad:#d93f3f; --warn:#f5a623;
+  }
+  @media screen{
+  :root[data-theme="dark"]{
+    --cream:#150b08; --ink:#f7ede4; --muted:#b9a89f; --card:#241410; --line:#3a2620; --peach:#3a1e14;
+    --orange-d:#ff9a6b; --ok:#4cd98a; --bad:#ff7a7a; --warn:#f5a623;
+    --code-bg:#0d0605; --th-bg:#3a1e14; --btn-dark:#3a2620; --btn-hover:#523228; --pillbg:#0d0605;
+    --node-line:#6b4a3e; --hover:#2a1913; --body:#e6d8cf; --glow2:#2a150d;
+    --okbg:rgba(76,217,138,.16); --badbg:rgba(255,122,122,.16);
+  }
+}
+html,body{transition:background .3s,color .3s}
+*{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--cream);color:var(--ink);overflow:hidden;
+    font-family:"Plus Jakarta Sans","Poppins","Segoe UI",system-ui,-apple-system,sans-serif}
+  body{display:flex;flex-direction:column}
+
+  .announce{background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;
+    gap:1.2vw;padding:1.1vh 2vw;font-size:clamp(.72rem,1.2vw,1rem);flex-wrap:wrap;text-align:center}
+  .announce .pill-dark{background:var(--pillbg);padding:.35em 1em;border-radius:99px;font-weight:700;color:#fff}
+  .announce .sep{width:1px;height:1.2em;background:rgba(255,255,255,.7)}
+
+  .top{position:relative;display:flex;align-items:center;justify-content:space-between;gap:2vw;
+    padding:1.5vh 3vw;background:var(--cream);border-bottom:1px solid var(--line)}
+  .logo{display:flex;align-items:center;min-width:8rem}
+  .logo img{height:2.2rem;display:block}
+  .wordmark{font-weight:800;font-size:1.7rem;letter-spacing:-.05em;text-transform:uppercase;color:var(--ink)}
+  .wordmark i{font-style:normal;color:var(--orange);margin:0 .04em}
+  nav{display:flex;gap:.3vw;flex-wrap:wrap;justify-content:center}
+  nav button{background:none;border:0;font:inherit;font-weight:500;font-size:clamp(.78rem,1.15vw,1rem);
+    padding:.6em 1em;border-radius:99px;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:.45em;
+    transition:background .2s}
+  nav button::after{content:"";width:12px;height:12px;background:no-repeat center/contain
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236f5f58' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}
+  nav button:hover{background:var(--hover)}
+  nav button.active{background:var(--peach);color:var(--orange-d);font-weight:700}
+  .actions{display:flex;align-items:center;gap:.7vw}
+  .theme svg{width:1.25rem;height:1.25rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .theme .sun{display:none}
+  :root[data-theme="dark"] .theme .sun{display:block}
+  :root[data-theme="dark"] .theme .moon{display:none}
+  .btn-orange{background:var(--orange);color:#fff;border:0;border-radius:99px;padding:.8em 1.7em;
+    font:inherit;font-weight:700;font-size:clamp(.8rem,1.1vw,1rem);cursor:pointer;transition:background .2s}
+  .btn-orange:hover{background:var(--orange-d)}
+  .round{width:2.9rem;height:2.9rem;border-radius:50%;border:0;background:var(--btn-dark);color:#fff;cursor:pointer;
+    font:inherit;font-size:1.1rem;display:flex;align-items:center;justify-content:center}
+  .round:hover{background:var(--btn-hover)}
+  .counter{background:var(--btn-dark);color:#fff;border-radius:99px;padding:0 1.1em;height:2.9rem;
+    display:flex;align-items:center;font-weight:600;font-size:.9rem;white-space:nowrap}
+  .bar{position:absolute;left:0;bottom:-1px;height:4px;background:var(--orange);width:0;transition:width .3s}
+
+  .deck{position:relative;flex:1;min-height:0;
+    background:radial-gradient(circle at 94% 8%,var(--peach) 0,transparent 30%),
+               radial-gradient(circle at 4% 98%,var(--glow2) 0,transparent 26%),var(--cream)}
+  .slide{position:absolute;inset:0;padding:3.5vh 7vw 4vh;display:none;flex-direction:column;
+    justify-content:center;gap:2vh;animation:fade .35s ease;overflow:auto}
+  .slide.active{display:flex}
+  @keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+  h1{font-size:clamp(2.4rem,6vw,4.6rem);line-height:1.05;font-weight:800;letter-spacing:-.04em}
+  h1 .hl{color:var(--orange)}
+  h2{font-size:clamp(1.6rem,3.3vw,2.6rem);font-weight:800;letter-spacing:-.03em;line-height:1.1}
+  h2::after{content:"";display:block;width:3.4rem;height:.32rem;border-radius:99px;background:var(--orange);margin-top:.45em}
+  h3{font-size:clamp(1.05rem,1.8vw,1.45rem);font-weight:700;margin-bottom:.35em;display:flex;align-items:center;gap:.5em}
+  h3::before{content:"";width:.7em;height:.7em;border-radius:50%;background:var(--orange);flex:none}
+  p,li{font-size:clamp(1rem,1.8vw,1.4rem);line-height:1.55;color:var(--body)}
+  b{color:var(--ink)}
+  .sub{color:var(--muted);font-size:clamp(1.05rem,2.1vw,1.6rem)}
+  ul{list-style:none;display:flex;flex-direction:column;gap:1vh}
+  li{padding-left:1.7em;position:relative}
+  li::before{content:"";position:absolute;left:0;top:.45em;width:.9em;height:.9em;border-radius:50%;
+    background:var(--peach);border:2px solid var(--orange)}
+  code{font-family:"JetBrains Mono","Cascadia Code",Consolas,monospace;background:var(--peach);color:var(--orange-d);
+    padding:.08em .45em;border-radius:7px;font-size:.88em;font-weight:500}
+
+  pre{background:var(--code-bg);border-radius:18px;padding:2vh 1.8vw;overflow:auto;
+    font-family:"JetBrains Mono","Cascadia Code",Consolas,monospace;font-size:clamp(.75rem,1.4vw,1.1rem);
+    line-height:1.6;color:#f6ebe2;box-shadow:0 10px 30px rgba(30,11,8,.18)}
+  pre .k{color:#ff8a5c} pre .c{color:#9a8880} pre .s{color:#9be3a5} pre .f{color:#ffc46b} pre .w{color:#ffd98a}
+
+  .grid{display:grid;gap:2vw;grid-template-columns:1fr 1fr;align-items:start}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:2.2vh 1.7vw;
+    box-shadow:0 8px 24px rgba(30,11,8,.06)}
+  .card pre{box-shadow:none;margin-top:.6vh}
+  .card.ok{border-top:5px solid var(--ok)} .card.bad{border-top:5px solid var(--bad)}
+  .tag{display:inline-flex;align-items:center;gap:.4em;font-size:.82rem;font-weight:700;padding:.3em 1em;
+    border-radius:99px;margin-bottom:.7em;background:var(--peach);color:var(--orange-d)}
+  .tag.ok{background:var(--okbg);color:var(--ok)} .tag.ok::before{content:"✓";font-weight:800}
+  .tag.bad{background:var(--badbg);color:var(--bad)} .tag.bad::before{content:"✕";font-weight:800}
+
+  table{border-collapse:separate;border-spacing:0;width:100%;background:var(--card);border:1px solid var(--line);
+    border-radius:16px;overflow:hidden;font-size:clamp(.85rem,1.5vw,1.18rem)}
+  th{background:var(--th-bg);color:#fff;text-align:left;padding:1.1vh 1.2vw;font-weight:700}
+  td{padding:1vh 1.2vw;border-bottom:1px solid var(--line)}
+  tr:last-child td{border-bottom:0}
+  td:first-child{font-family:"JetBrains Mono","Cascadia Code",Consolas,monospace;color:var(--orange-d);font-weight:500}
+
+  .flow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:.8vw}
+  .node{background:var(--card);border:2px solid var(--node-line);border-radius:14px;padding:1.2vh 1.2vw;text-align:center;
+    font-weight:600;font-size:clamp(.8rem,1.45vw,1.15rem)}
+  .node small{display:block;color:var(--muted);font-weight:400;font-size:.75em;margin-top:.3em;
+    font-family:"JetBrains Mono",Consolas,monospace}
+  .node.m{border-color:var(--orange);background:var(--peach)}
+  .node.o{background:var(--orange);border-color:var(--orange);color:#fff}
+  .node.o small{color:rgba(255,255,255,.85)}
+  .arrow{color:var(--orange);font-size:1.8rem;font-weight:800}
+
+  .note{background:var(--peach);border-left:6px solid var(--orange);padding:1.3vh 1.5vw;border-radius:12px;
+    font-size:clamp(.92rem,1.6vw,1.25rem)}
+  .big{font-size:clamp(1.3rem,2.6vw,2rem);text-align:center;font-weight:600;line-height:1.35}
+  .center{text-align:center;align-items:center}
+  .center .tag{margin-bottom:0}
+
+  @media (max-width:900px){nav{display:none}.grid{grid-template-columns:1fr}.slide{justify-content:flex-start}}
+  @media print{
+    html,body{overflow:visible;height:auto}
+    body{display:block}
+    .announce,.top{display:none}
+    .deck{position:static;background:#fff}
+    .slide{position:static;display:flex!important;page-break-after:always;height:100vh;animation:none}
+  }
+
+  /* ===== Ajustes de layout: header compacto, sin scroll en código ===== */
+  .announce{padding:.55vh 2vw;font-size:clamp(.68rem,1vw,.9rem);gap:1vw}
+  .announce .pill-dark{padding:.2em .8em}
+  .top{padding:1vh 2.5vw;gap:1.2vw}
+  .logo{min-width:0}
+  .logo img{height:1.8rem}
+  .wordmark{font-size:1.4rem}
+  nav{flex:1;min-width:0;flex-wrap:nowrap;gap:.1vw}
+  nav button{white-space:nowrap;font-size:clamp(.7rem,.95vw,.9rem);padding:.45em .7em}
+  nav button::after{display:none}
+  .actions{gap:.5vw;flex:none}
+  .btn-orange{white-space:nowrap;padding:.6em 1.2em;font-size:clamp(.78rem,1vw,.95rem)}
+  .round{width:2.4rem;height:2.4rem}
+  .counter{height:2.4rem;white-space:nowrap;padding:0 .9em;font-size:.85rem}
+
+  .slide{padding:2.2vh 6vw 2.8vh;gap:1.5vh;overflow:hidden}
+  .fit{display:flex;flex-direction:column;gap:inherit;align-items:inherit;justify-content:center;transform-origin:top left}
+  p,li{line-height:1.45}
+  pre{overflow:hidden;padding:1.5vh 1.5vw;font-size:clamp(.7rem,1.2vw,1rem);line-height:1.5}
+  .card{padding:1.8vh 1.4vw}
+
+  @media (max-width:1100px){nav{display:none}}
+  @media print{.fit{zoom:1!important;width:100%!important}}
+
+  /* ===== Diapositiva con código largo: scroll interno en vez de achicar ===== */
+  .slide.scroll .fit{height:100%;justify-content:flex-start}
+  .slide.scroll .grid{flex:1;min-height:0}
+  .slide.scroll .card{display:flex;flex-direction:column;min-height:0}
+  .slide.scroll .card pre{flex:1;min-height:0;overflow:auto;font-size:clamp(.78rem,1.15vw,1rem)}
+  @media print{.slide.scroll .card pre{overflow:visible}}
+</style>
+<script>try{var t=localStorage.getItem('rag-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+</head>
+<body>
+<div class="announce">
+  <span class="pill-dark">CLASE RAG 🧭</span>
+  <span>Embeddings, <b style="color:#fff">chunking</b> y memoria vectorial con ChromaDB</span>
+  <span class="sep"></span>
+  <span>Clase del 17/11</span>
+</div>
+<header class="top">
+  <div class="logo">
+    <img id="ulogo" src="logo.png" alt="" onload="document.getElementById('flogo').style.display='none'" onerror="this.style.display='none'">
+    <span id="flogo" class="wordmark">RAG<i>|</i>Class</span>
+  </div>
+  <nav id="nav"></nav>
+  <div class="actions">
+    <button class="round theme" id="theme" title="Cambiar tema (T)" aria-label="Cambiar entre modo claro y oscuro">
+      <svg class="moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+    <button class="round" id="prev" title="Anterior">←</button>
+    <button class="btn-orange" id="next">Siguiente →</button>
+    <div class="counter" id="count"></div>
+  </div>
+  <div class="bar" id="bar"></div>
+</header>
+<div class="deck" id="deck">
+
+<!-- 1 -->
+<section class="slide center">
+  <span class="tag">Clase · RAG</span>
+  <h1>Embeddings, Chunking<br><span class="hl">y ChromaDB</span></h1>
+  <p class="sub">Del texto a la geometría: buscar por <b>significado</b>, no por palabras</p>
+  <p class="sub" style="font-size:1rem">Flechas ← → para navegar · F para pantalla completa · T para cambiar tema</p>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <h2>Qué vamos a ver hoy</h2>
+  <ul>
+    <li>Por qué falla la búsqueda por palabras clave</li>
+    <li>Qué es un <b>embedding</b> y por qué es un vector denso</li>
+    <li>Métricas de similitud: <b>coseno</b>, <b>euclídea</b> y <b>producto punto</b></li>
+    <li>Modelos estáticos vs contextuales</li>
+    <li>Aplicaciones reales y errores comunes</li>
+    <li><b>Chunking</b>: limpieza, recursive splitting y overlap</li>
+    <li><b>ChromaDB</b> local: operaciones CRUD y metadatos</li>
+    <li>Dos ejercicios y la entrega: un RAG asíncrono completo</li>
+  </ul>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">El problema</span>
+  <h2>El talón de Aquiles de las palabras clave</h2>
+  <p>Buscás un documento sobre <b>"cómo limitar el tráfico de red"</b>. Tu búsqueda dice <code>limitar tráfico</code>, pero el documento dice otra cosa:</p>
+  <div class="grid">
+    <div class="card bad">
+      <span class="tag bad">búsqueda por keywords</span>
+      <p><code>"limitar tráfico"</code> no encuentra <code>"restricción de ancho de banda"</code> ni <code>"rate-limiting"</code>. No comparten letras.</p>
+    </div>
+    <div class="card ok">
+      <span class="tag ok">búsqueda semántica</span>
+      <p>Las tres frases <b>significan lo mismo</b>, así que quedan <b>cerca</b> en el espacio de embeddings. Se encuentran.</p>
+    </div>
+  </div>
+  <p class="note">Problema: la <b>rigidez terminológica</b>. Solución: transformar el lenguaje en <b>geometría</b> y medir qué tan "cerca" están dos ideas.</p>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Concepto clave · Embedding</span>
+  <h2>¿Qué es un embedding?</h2>
+  <p class="big">Un <b>embedding</b> es una <b>lista de números</b> (un vector) que captura el <b>significado</b> de un fragmento de texto.</p>
+  <div class="flow">
+    <div class="node">"No queda espacio en el disco"<small>texto</small></div>
+    <span class="arrow">→</span>
+    <div class="node m">Modelo de embeddings<small>text-embedding-3-small</small></div>
+    <span class="arrow">→</span>
+    <div class="node o">[0.021, -0.113, 0.087, ...]<small>1536 floats</small></div>
+  </div>
+  <p>Formalmente: una <b>representación numérica densa</b> de un objeto (texto, pero también imagen o audio) en un espacio vectorial de alta dimensionalidad.</p>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <h2>De lo discreto a lo denso</h2>
+  <div class="grid">
+    <div class="card bad">
+      <span class="tag bad">One-Hot Encoding</span>
+<pre><span class="c"># vocabulario de 50.000 palabras</span>
+perro = [0, 0, 0, ..., <span class="w">1</span>, ..., 0]
+<span class="c"># 50.000 elementos, un solo 1</span></pre>
+      <p>La distancia entre <b>"perro"</b> y <b>"canino"</b> es la misma que entre <b>"perro"</b> y <b>"microprocesador"</b>. No hay noción de significado.</p>
+    </div>
+    <div class="card ok">
+      <span class="tag ok">Embedding denso</span>
+<pre>perro  = [0.42, -0.18, 0.77, ...]
+canino = [0.40, -0.21, 0.74, ...]
+<span class="c"># 1536 a 3072 dimensiones</span></pre>
+      <p>Cada dimensión es una <b>característica abstracta</b> aprendida por el modelo. Conceptos parecidos ⇒ vectores parecidos.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Analogía</span>
+  <h2>El mapa de significados</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>🗺️ Un mapa 2D</h3>
+      <p><b>Madrid</b> en (40, -3) y <b>Lisboa</b> en (38, -9). La distancia entre los puntos refleja su <b>cercanía geográfica</b>.</p>
+    </div>
+    <div class="card">
+      <h3>🧭 Un embedding</h3>
+      <p>Hace lo mismo pero en <b>miles de dimensiones</b>: coloca "Rey" cerca de "Hombre" y "Reina" cerca de "Mujer", manteniendo las relaciones entre conceptos.</p>
+    </div>
+  </div>
+  <p class="note">Una vez que los textos son <b>puntos en un espacio</b>, "buscar algo parecido" se convierte en "buscar el punto más cercano".</p>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <h2>La geometría de la similitud</h2>
+  <p>Si los textos son puntos, ¿cómo medimos qué tan parecidos son? Tres métricas principales:</p>
+  <table>
+    <tr><th>Métrica</th><th>Qué mide</th><th>Cuándo usarla</th></tr>
+    <tr><td>Coseno</td><td>El <b>ángulo</b> entre vectores (dirección)</td><td>Estándar en RAG: ignora la longitud del texto</td></tr>
+    <tr><td>Euclídea (L2)</td><td>La distancia en <b>línea recta</b></td><td>Cuando los vectores están normalizados</td></tr>
+    <tr><td>Producto punto</td><td>Magnitudes × coseno del ángulo</td><td>Recomendadores, donde la "intensidad" importa</td></tr>
+  </table>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <h2>Las tres métricas en detalle</h2>
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="card ok">
+      <span class="tag ok">la más usada</span>
+      <h3>Similitud coseno</h3>
+      <p style="font-size:clamp(.85rem,1.4vw,1.1rem)">Captura la <b>dirección</b>: no importa si un texto es más largo, sino que "apunten" al mismo concepto. Rango -1 a 1 (en texto, suele ser 0 a 1).</p>
+    </div>
+    <div class="card">
+      <span class="tag">ojo con la magnitud</span>
+      <h3>Euclídea (L2)</h3>
+      <p style="font-size:clamp(.85rem,1.4vw,1.1rem)">Muy sensible al <b>tamaño</b> del vector. Un párrafo y una oración del mismo tema pueden quedar lejos.</p>
+    </div>
+    <div class="card">
+      <span class="tag">recomendadores</span>
+      <h3>Producto punto</h3>
+      <p style="font-size:clamp(.85rem,1.4vw,1.1rem)">Combina ángulo y magnitud. Útil cuando la <b>importancia</b> de un vector (su largo) es relevante.</p>
+    </div>
+  </div>
+  <p class="note"><b>Regla de oro:</b> ChromaDB o Pinecone te dejan elegir la métrica. Con modelos de OpenAI o HuggingFace, si no normalizaste los vectores, la <b>similitud coseno</b> es casi siempre la elección correcta.</p>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <h2>Del contexto a la representación</h2>
+  <div class="grid">
+    <div class="card bad">
+      <span class="tag bad">estáticos</span>
+      <h3>Word2Vec, GloVe</h3>
+      <p>Cada palabra tiene <b>un único vector</b>. "banco" (para sentarse) y "banco" (entidad financiera) comparten embedding. El sistema es <b>ciego al contexto</b>.</p>
+    </div>
+    <div class="card ok">
+      <span class="tag ok">contextuales</span>
+      <h3>BERT, Ada, Voyage</h3>
+      <p>La misma palabra genera <b>vectores distintos</b> según lo que la rodea. En "me senté en el banco", el modelo entiende que es mobiliario urbano.</p>
+    </div>
+  </div>
+  <p>Como desarrollador, vas a usar modelos de embeddings <b>vía API</b> (OpenAI, Voyage, Cohere). Ej: <code>text-embedding-3-small</code> recibe un string y devuelve <b>1536 floats</b>.</p>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <h2>Ejemplo conceptual en Python</h2>
+<pre><span class="k">import</span> openai
+
+<span class="c"># Texto A: "El sistema de archivos está lleno"</span>
+<span class="c"># Texto B: "No queda espacio en el disco duro"</span>
+<span class="c"># Texto C: "Me gusta comer manzanas"</span>
+
+<span class="c"># El modelo generará vectores tales que:</span>
+<span class="c"># sim_coseno(Vector A, Vector B) ≈ 0.85  (alta similitud semántica)</span>
+<span class="c"># sim_coseno(Vector A, Vector C) ≈ 0.15  (baja similitud semántica)</span></pre>
+  <div class="flow">
+    <div class="node">A: "sistema de archivos lleno"</div><span class="arrow">≈</span>
+    <div class="node m">B: "sin espacio en disco"<small>0.85</small></div>
+    <span class="arrow">≠</span>
+    <div class="node">C: "comer manzanas"<small>0.15</small></div>
+  </div>
+  <p class="note">A y B no comparten <b>ninguna palabra clave</b>, pero el embedding los pone juntos.</p>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <h2>Aplicaciones en el mundo real</h2>
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="card">
+      <h3>Búsqueda semántica</h3>
+      <p style="font-size:clamp(.85rem,1.4vw,1.1rem)">Notion o GitHub: buscás <b>"problemas de pagos"</b> y aparece <b>"error en la pasarela de Stripe"</b> o <b>"transacción declinada"</b>.</p>
+    </div>
+    <div class="card">
+      <h3>Deduplicación</h3>
+      <p style="font-size:clamp(.85rem,1.4vw,1.1rem)">Soporte técnico (Zendesk): agrupar <b>"¿cómo cambio mi clave?"</b> con <b>"¿procedimiento para resetear password?"</b>.</p>
+    </div>
+    <div class="card">
+      <h3>Clasificación zero-shot</h3>
+      <p style="font-size:clamp(.85rem,1.4vw,1.1rem)">Embedding de cada etiqueta (<code>URGENTE</code>, <code>SOLICITUD</code>, <code>SPAM</code>) y del correo: gana la <b>más cercana</b>. Sin entrenar nada.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <h2>Errores comunes con embeddings</h2>
+  <table>
+    <tr><th>Error</th><th>Por qué es un problema</th></tr>
+    <tr><td>"Comprensión total"</td><td>Capturan correlaciones estadísticas, no lógica: <b>"Hay stock"</b> y <b>"No hay stock"</b> pueden quedar cerca.</td></tr>
+    <tr><td>Ignorar tokens</td><td>Cada modelo tiene una ventana de contexto. Un PDF de 100 páginas se <b>trunca</b> o pierde precisión ⇒ <b>Chunking</b>.</td></tr>
+    <tr><td>Mezclar modelos</td><td><b>NUNCA</b> compares un embedding de OpenAI con uno de HuggingFace: viven en <b>espacios distintos</b>.</td></tr>
+    <tr><td>Domain shift</td><td>Un modelo general puede fallar con lenguaje médico o código muy técnico.</td></tr>
+  </table>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <h2>Síntesis: embeddings</h2>
+  <ul>
+    <li>Los embeddings son la <b>traducción del lenguaje a coordenadas</b> numéricas.</li>
+    <li>La <b>similitud coseno</b> mide qué tan cerca están dos ideas.</li>
+    <li>Son la base de la <b>"memoria a largo plazo"</b> de cualquier sistema de IA moderno.</li>
+    <li>En RAG, son el <b>motor que busca</b> la información relevante.</li>
+  </ul>
+  <p class="note">Pero antes de buscar en miles de documentos, hay que <b>"trocearlos"</b> de forma inteligente. Siguiente tema: <b>Chunking</b>.</p>
+</section>
+
+<!-- 14 -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Chunking</span>
+  <h2>¿Por qué necesitamos fragmentar?</h2>
+  <p>En RAG, la calidad de la respuesta depende fundamentalmente de la <b>calidad de lo que recuperamos</b>.</p>
+  <div class="grid">
+    <div class="card bad">
+      <span class="tag bad">1 PDF = 1 vector</span>
+      <p>Un PDF de 50 páginas en un solo vector es un <b>promedio semántico diluido</b>: pierde matices y no sirve para respuestas específicas.</p>
+    </div>
+    <div class="card ok">
+      <span class="tag ok">chunks</span>
+      <p>Unidades de información <b>atómicas</b> y <b>semánticamente coherentes</b>: cada una responde bien a preguntas puntuales.</p>
+    </div>
+  </div>
+  <div class="flow">
+    <div class="node">Documento</div><span class="arrow">→</span>
+    <div class="node">Limpieza</div><span class="arrow">→</span>
+    <div class="node m">Chunking</div><span class="arrow">→</span>
+    <div class="node">Embeddings</div><span class="arrow">→</span>
+    <div class="node o">Base vectorial</div>
+  </div>
+</section>
+
+<!-- 15 -->
+<section class="slide">
+  <h2>1. Limpieza (preprocessing)</h2>
+  <p>Antes de dividir, hay que limpiar. Los PDFs y HTMLs reales traen ruido:</p>
+  <div class="grid">
+    <div class="card">
+      <ul>
+        <li>Encabezados y pies de página <b>repetidos</b></li>
+        <li>Saltos de línea dobles o triples</li>
+      </ul>
+    </div>
+    <div class="card">
+      <ul>
+        <li>Caracteres raros por mala extracción de tablas (<code>■</code>)</li>
+        <li>Rutas de archivos o metadatos basura</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note"><b>Por qué importa:</b> si un chunk tiene un pie de página en medio de una frase importante, el embedding <b>captura ese ruido</b> y la similitud semántica empeora.</p>
+</section>
+
+<!-- 16 -->
+<section class="slide">
+  <h2>2. Estrategias de chunking</h2>
+  <div class="grid">
+    <div class="card bad">
+      <span class="tag bad">simple pero peligroso</span>
+      <h3>Fixed-size</h3>
+      <p>Corta cada X caracteres o tokens. Puede partir una oración o un concepto <b>por la mitad</b>.</p>
+    </div>
+    <div class="card ok">
+      <span class="tag ok">estándar de industria</span>
+      <h3>Recursive Character Splitting</h3>
+      <p>El enfoque de LangChain: prueba una <b>jerarquía de separadores</b>, del más grande al más chico.</p>
+    </div>
+  </div>
+  <div class="flow">
+    <div class="node o">Párrafos<small>\n\n</small></div><span class="arrow">→</span>
+    <div class="node m">Líneas<small>\n</small></div><span class="arrow">→</span>
+    <div class="node">Espacios<small>" "</small></div><span class="arrow">→</span>
+    <div class="node">Caracteres<small>último recurso</small></div>
+  </div>
+  <p>Así, en la medida de lo posible, <b>párrafos y oraciones se mantienen unidos</b>.</p>
+</section>
+
+<!-- 17 -->
+<section class="slide">
+  <h2>3. Overlap (solapamiento)</h2>
+  <p>El final del <b>Chunk 1</b> se repite al inicio del <b>Chunk 2</b>.</p>
+  <div class="flow">
+    <div class="node">Chunk 1<small>... la garantía cubre 12 meses</small></div>
+    <span class="arrow">⇄</span>
+    <div class="node m">overlap<small>cubre 12 meses</small></div>
+    <span class="arrow">⇄</span>
+    <div class="node o">Chunk 2<small>cubre 12 meses, salvo golpes ...</small></div>
+  </div>
+  <p class="note"><b>Motivación:</b> si un concepto clave cae justo en el límite entre dos fragmentos, el overlap preserva el contexto en ambos. Se recupera sin importar <b>dónde se cortó</b> el "papel virtual".</p>
+</section>
+
+<!-- 18 -->
+<section class="slide">
+  <h2>Errores comunes y síntesis</h2>
+  <div class="grid">
+    <div class="card bad">
+      <span class="tag bad">errores</span>
+      <ul>
+        <li><b>Chunks muy chicos:</b> ruido y sin contexto global.</li>
+        <li><b>Medir en caracteres:</b> los modelos cobran y limitan por <b>tokens</b>. Validá con <code>tiktoken</code>.</li>
+        <li><b>No limpiar:</b> basura entra, basura sale.</li>
+      </ul>
+    </div>
+    <div class="card ok">
+      <span class="tag ok">un buen chunking equilibra</span>
+      <ul>
+        <li><b>Granularidad:</b> fragmentos chicos para precisión.</li>
+        <li><b>Contexto:</b> lo bastante grandes (o con overlap) para entenderse.</li>
+        <li><b>Limpieza:</b> datos normalizados.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 19 -->
+<section class="slide">
+  <h2>Ejercicio 1: qué tenés que hacer</h2>
+  <p><b>Objetivo:</b> armar un pipeline que limpie un documento y lo divida en fragmentos medidos en <b>tokens</b>, con solapamiento.</p>
+  <table>
+    <tr><th>Método</th><th>Qué hacer</th></tr>
+    <tr><td>__init__</td><td><code>tiktoken.get_encoding(model_encoding)</code> + <code>RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50, length_function=self.calculate_tokens, separators=["\n\n", "\n", ". ", " ", ""])</code></td></tr>
+    <tr><td>clean_text</td><td>Con <code>re.sub</code>: (a) borrá encabezados repetidos, (b) máximo un <code>\n\n</code> entre párrafos, (c) espacios múltiples → uno, (d) eliminá <code>■</code>.</td></tr>
+    <tr><td>calculate_tokens</td><td><code>return len(self.tokenizer.encode(text))</code></td></tr>
+    <tr><td>process_document</td><td>Limpiá, <code>self.splitter.split_text(...)</code>, imprimí los tokens de cada chunk y devolvé la lista.</td></tr>
+  </table>
+  <p class="note">No borres <b>todos</b> los saltos de línea: el splitter los usa para cortar por párrafo.</p>
+</section>
+
+<!-- 20 -->
+<section class="slide">
+  <h2>Ejercicio 1: input de prueba</h2>
+  <p>Reemplazá <code>text = "Tu texto largo aquí..."</code> por este texto, con el ruido típico de un PDF convertido:</p>
+<pre>text = <span class="s">"""ACME S.A. — Manual interno — Pág. 1
+
+Política de devoluciones■■
+Los clientes pueden devolver un producto dentro de los 30 días    corridos desde la compra, siempre que conserven el ticket.
+
+
+ACME S.A. — Manual interno — Pág. 2
+El reintegro se hace por el mismo medio de pago. Si la compra fue en efectivo, se entrega una nota de crédito.
+Envíos
+Los envíos dentro de la ciudad demoran 48 horas hábiles. Para el interior del país, el plazo es de 5 a 7 días hábiles y el costo depende del peso del paquete.
+
+
+ACME S.A. — Manual interno — Pág. 3
+Garantía
+Todos los productos electrónicos tienen 12 meses de garantía. La garantía no cubre daños por mal uso ni golpes."""</span></pre>
+</section>
+
+<!-- 21 -->
+<section class="slide">
+  <h2>Ejercicio 1: salida esperada</h2>
+  <p>El texto es corto: para ver el corte, probá primero con <code>chunk_size=40</code> y <code>chunk_overlap=10</code>, y después volvé a <code>500 / 50</code>.</p>
+  <ul>
+    <li>Varios chunks (<b>entre 4 y 8</b>), ninguno de más de <b>40 tokens</b>.</li>
+    <li>Ningún chunk contiene <code>ACME S.A. — Manual interno</code> ni <code>■</code>.</li>
+    <li>Cuando un párrafo no entra entero, sus <b>últimas palabras se repiten</b> al comienzo del siguiente: ese es el <b>overlap</b>.</li>
+  </ul>
+<pre>Chunk 1: 31 tokens
+Chunk 2: 38 tokens
+...
+Chunks generados: 6</pre>
+</section>
+
+<!-- 22 -->
+<section class="slide scroll">
+  <h2>Ejercicio 1: código base</h2>
+  <div class="grid" style="grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);align-items:stretch">
+    <div class="card" style="padding:1vh .8vw"><span class="tag">Plantilla · Ejercicio 1</span>
+<pre><span class="k">import</span> re
+<span class="k">import</span> tiktoken
+<span class="k">from</span> typing <span class="k">import</span> List
+<span class="k">from</span> langchain_text_splitters <span class="k">import</span> RecursiveCharacterTextSplitter
+
+<span class="k">class</span> <span class="f">DocumentProcessor</span>:
+    <span class="k">def</span> <span class="f">__init__</span>(self, model_encoding: str = <span class="s">"cl100k_base"</span>):
+        <span class="c"># TODO: Inicializar el encoding de tiktoken</span>
+        self.tokenizer = <span class="k">None</span>
+
+        <span class="c"># TODO: Configurar RecursiveCharacterTextSplitter</span>
+        <span class="c"># Debe usar una función personalizada para medir longitud por TOKENS, no caracteres.</span>
+        self.splitter = <span class="k">None</span>
+
+    <span class="k">def</span> <span class="f">clean_text</span>(self, text: str) -> str:
+        <span class="s">"""Limpia el texto eliminando espacios duplicados y saltos de línea innecesarios."""</span>
+        <span class="c"># IMPLEMENTA AQUÍ: Usa regex para limpiar el texto</span>
+        <span class="k">return</span> text
+
+    <span class="k">def</span> <span class="f">calculate_tokens</span>(self, text: str) -> int:
+        <span class="s">"""Calcula la cantidad de tokens usando el tokenizer de tiktoken."""</span>
+        <span class="c"># IMPLEMENTA AQUÍ</span>
+        <span class="k">return</span> 0
+
+    <span class="k">def</span> <span class="f">process_document</span>(self, raw_text: str) -> List[str]:
+        <span class="s">"""Pipeline: Limpieza -> Fragmentación."""</span>
+        <span class="c"># TODO: 1. Limpiar el texto</span>
+        <span class="c"># TODO: 2. Aplicar el splitter</span>
+        <span class="c"># TODO: 3. Retornar los chunks procesados</span>
+        <span class="k">return</span> []
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    text = <span class="s">"Tu texto largo aquí..."</span>
+    processor = DocumentProcessor()
+    chunks = processor.process_document(text)
+    <span class="f">print</span>(f<span class="s">"Chunks generados: {len(chunks)}"</span>)</pre>
+    </div>
+  </div>
+</section>
+
+<!-- 23 -->
+<section class="slide scroll">
+  <h2>Ejercicio 1: solución</h2>
+  <div class="grid" style="grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);align-items:stretch">
+    <div class="card" style="padding:1vh .8vw"><span class="tag">Código completo · Ejercicio 1</span>
+<pre><span class="k">import</span> re
+<span class="k">import</span> tiktoken
+<span class="k">from</span> typing <span class="k">import</span> List
+<span class="k">from</span> langchain_text_splitters <span class="k">import</span> RecursiveCharacterTextSplitter
+
+<span class="k">class</span> <span class="f">DocumentProcessor</span>:
+    <span class="k">def</span> <span class="f">__init__</span>(self, model_encoding: str = <span class="s">"cl100k_base"</span>,
+                 chunk_size: int = <span class="w">500</span>, chunk_overlap: int = <span class="w">50</span>):
+        <span class="c"># Tokenizer real: medimos como mide (y cobra) el modelo</span>
+        self.tokenizer = tiktoken.get_encoding(model_encoding)
+
+        <span class="c"># length_function: el splitter cuenta TOKENS, no caracteres</span>
+        self.splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            length_function=self.calculate_tokens,
+            separators=[<span class="s">"\n\n"</span>, <span class="s">"\n"</span>, <span class="s">". "</span>, <span class="s">" "</span>, <span class="s">""</span>])
+
+    <span class="k">def</span> <span class="f">clean_text</span>(self, text: str) -> str:
+        <span class="c"># (a) Encabezados repetidos de cada página</span>
+        text = re.sub(<span class="s">r"^.*Manual interno.*Pág\.\s*\d+.*$"</span>, <span class="s">""</span>,
+                      text, flags=re.MULTILINE)
+        <span class="c"># (d) Caracteres basura de la extracción</span>
+        text = re.sub(<span class="s">r"[■□▪●]"</span>, <span class="s">""</span>, text)
+        <span class="c"># (c) Espacios/tabs múltiples → uno solo</span>
+        text = re.sub(<span class="s">r"[ \t]+"</span>, <span class="s">" "</span>, text)
+        <span class="c"># Quitar espacios pegados a los saltos de línea</span>
+        text = re.sub(<span class="s">r" *\n *"</span>, <span class="s">"\n"</span>, text)
+        <span class="c"># (b) Máximo un salto doble entre párrafos</span>
+        text = re.sub(<span class="s">r"\n{3,}"</span>, <span class="s">"\n\n"</span>, text)
+        <span class="k">return</span> text.strip()
+
+    <span class="k">def</span> <span class="f">calculate_tokens</span>(self, text: str) -> int:
+        <span class="k">return</span> len(self.tokenizer.encode(text))
+
+    <span class="k">def</span> <span class="f">process_document</span>(self, raw_text: str) -> List[str]:
+        clean = self.clean_text(raw_text)            <span class="c"># 1. Limpieza</span>
+        chunks = self.splitter.split_text(clean)     <span class="c"># 2. Fragmentación</span>
+        <span class="k">for</span> i, c <span class="k">in</span> enumerate(chunks, 1):
+            <span class="f">print</span>(f<span class="s">"Chunk {i}: {self.calculate_tokens(c)} tokens"</span>)
+            <span class="f">print</span>(f<span class="s">"  {c!r}"</span>)
+        <span class="k">return</span> chunks                                 <span class="c"># 3. Retorno</span>
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    text = <span class="s">"""...texto ACME de la diapositiva anterior..."""</span>
+    <span class="c"># Primero 40 / 10 para ver el corte; después 500 / 50</span>
+    processor = DocumentProcessor(chunk_size=<span class="w">40</span>, chunk_overlap=<span class="w">10</span>)
+    chunks = processor.process_document(text)
+    <span class="f">print</span>(f<span class="s">"Chunks generados: {len(chunks)}"</span>)</pre>
+    </div>
+  </div>
+</section>
+
+<!-- 24 -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Persistencia</span>
+  <h2>¿Por qué ChromaDB local?</h2>
+  <p>Los embeddings en RAM son <b>volátiles</b>. Necesitamos que el conocimiento <b>sobreviva al reinicio</b> y se actualice sin reindexar todo.</p>
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="card"><h3>Simple</h3><p style="font-size:clamp(.85rem,1.4vw,1.1rem)">No requiere levantar un contenedor Docker (por defecto).</p></div>
+    <div class="card"><h3>En disco</h3><p style="font-size:clamp(.85rem,1.4vw,1.1rem)">Guarda los datos en archivos dentro de una carpeta de tu elección.</p></div>
+    <div class="card"><h3>CRUD</h3><p style="font-size:clamp(.85rem,1.4vw,1.1rem)">Create, Read, Update, Delete sobre el "conocimiento" de tu agente.</p></div>
+  </div>
+<pre>client = chromadb.<span class="f">PersistentClient</span>(path=<span class="s">"./chroma_db"</span>)  <span class="c"># sin path = se pierde todo al cerrar</span></pre>
+</section>
+
+<!-- 25 -->
+<section class="slide">
+  <h2>CRUD en el espacio vectorial</h2>
+  <table>
+    <tr><th>Operación</th><th>Qué hace</th><th>Matiz vectorial</th></tr>
+    <tr><td>upsert()</td><td>Create / Update</td><td>Guarda texto <b>y su vector</b>. Si el ID existe, actualiza; si no, crea.</td></tr>
+    <tr><td>get()</td><td>Read exacto</td><td>Por IDs o filtros de metadatos (como un <code>SELECT</code>).</td></tr>
+    <tr><td>query()</td><td>Read semántico</td><td>Por <b>similitud</b>. Es el corazón de RAG.</td></tr>
+    <tr><td>update()</td><td>Update</td><td>Cambiar el documento <b>dispara una nueva vectorización</b>.</td></tr>
+    <tr><td>delete()</td><td>Delete</td><td>Elimina vectores que ya no son relevantes.</td></tr>
+  </table>
+</section>
+
+<!-- 26 -->
+<section class="slide">
+  <h2>Metadatos y errores comunes</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>El rol de los metadatos</h3>
+<pre>{<span class="s">"autor"</span>: <span class="s">"Juan"</span>, <span class="s">"fecha"</span>: <span class="s">"2024-05"</span>, <span class="s">"source"</span>: <span class="s">"pdf_v1"</span>}</pre>
+      <ul>
+        <li><b>Filtrar</b> resultados en la búsqueda.</li>
+        <li><b>Rastrear el origen</b> de lo que usa el LLM (citar fuentes).</li>
+      </ul>
+    </div>
+    <div class="card bad">
+      <span class="tag bad">errores</span>
+      <ul>
+        <li><b>ID no determinista:</b> IDs aleatorios impiden el update. Usá hashes o IDs estructurados.</li>
+        <li><b>Desajuste de embeddings:</b> consultar con otro modelo distinto al de la carga = ruido.</li>
+        <li><b>Ignorar la persistencia:</b> cliente sin ruta de disco.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 27 -->
+<section class="slide">
+  <h2>Ejercicio 2: qué tenés que hacer</h2>
+  <p><b>Objetivo:</b> una memoria vectorial que se guarde en disco y permita <b>insertar, buscar, filtrar y borrar</b>.</p>
+  <table>
+    <tr><th>Paso</th><th>Qué hacer</th></tr>
+    <tr><td>__init__</td><td><code>chromadb.PersistentClient(path=persist_path)</code> y <code>get_or_create_collection(name=..., embedding_function=embedding_functions.DefaultEmbeddingFunction())</code></td></tr>
+    <tr><td>upsert_documents</td><td><code>self.collection.upsert(ids=ids, documents=documents, metadatas=metadatas)</code></td></tr>
+    <tr><td>semantic_search</td><td><code>self.collection.query(query_texts=[query_text], n_results=n_results)</code> → lista de dicts con <code>document</code>, <code>metadata</code>, <code>distance</code></td></tr>
+    <tr><td>where</td><td>Parámetro opcional en <code>semantic_search</code>, pasado a <code>query()</code></td></tr>
+    <tr><td>delete_by_id</td><td><code>self.collection.delete(ids=ids)</code></td></tr>
+  </table>
+</section>
+
+<!-- 28 -->
+<section class="slide">
+  <h2>Ejercicio 2: prueba y salida esperada</h2>
+<pre>manager = VectorMemoryManager(<span class="s">"./chroma_db"</span>, <span class="s">"knowledge_base"</span>)
+manager.upsert_documents(
+    [<span class="s">"doc1"</span>, <span class="s">"doc2"</span>, <span class="s">"doc3"</span>],
+    [<span class="s">"Python 3.12 introduce mejoras en asyncio y tipos."</span>,
+     <span class="s">"Las bases de datos vectoriales son clave para la memoria de largo plazo en IA."</span>,
+     <span class="s">"FastAPI permite crear APIs asíncronas en Python."</span>],
+    [{<span class="s">"source"</span>: <span class="s">"news"</span>}, {<span class="s">"source"</span>: <span class="s">"tech_blog"</span>}, {<span class="s">"source"</span>: <span class="s">"tech_blog"</span>}])
+<span class="f">print</span>(manager.semantic_search(<span class="s">"mejoras en python"</span>))
+<span class="f">print</span>(manager.semantic_search(<span class="s">"memoria de IA"</span>, where={<span class="s">"source"</span>: <span class="s">"tech_blog"</span>}))
+manager.delete_by_id([<span class="s">"doc2"</span>])
+<span class="f">print</span>(manager.collection.count())</pre>
+  <ul>
+    <li>La 1ª búsqueda devuelve primero el documento de <b>Python 3.12</b>.</li>
+    <li>La 2ª solo devuelve documentos con <code>source: tech_blog</code>. Después de borrar, <code>count()</code> da <b>2</b>.</li>
+    <li>Si corrés de nuevo, los datos <b>siguen ahí</b>. La primera vez se descarga un modelo de embeddings: puede tardar.</li>
+  </ul>
+</section>
+
+<!-- 29 -->
+<section class="slide scroll">
+  <h2>Ejercicio 2: solución</h2>
+  <div class="grid" style="grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);align-items:stretch">
+    <div class="card" style="padding:1vh .8vw"><span class="tag">Código completo · Ejercicio 2</span>
+<pre><span class="k">import</span> chromadb
+<span class="k">from</span> chromadb.utils <span class="k">import</span> embedding_functions
+<span class="k">from</span> typing <span class="k">import</span> List, Dict, Any, Optional
+
+<span class="k">class</span> <span class="f">VectorMemoryManager</span>:
+    <span class="k">def</span> <span class="f">__init__</span>(self, persist_path: str, collection_name: str):
+        <span class="c"># Cliente persistente: los datos quedan en disco</span>
+        self.client = chromadb.PersistentClient(path=persist_path)
+
+        <span class="c"># Siempre el MISMO modelo de embeddings para cargar y consultar</span>
+        self.collection = self.client.get_or_create_collection(
+            name=collection_name,
+            embedding_function=embedding_functions.DefaultEmbeddingFunction())
+
+    <span class="k">def</span> <span class="f">upsert_documents</span>(self, ids: List[str], documents: List[str],
+                         metadatas: List[Dict[str, Any]]):
+        <span class="c"># Si el ID existe, actualiza; si no, crea. Nunca duplica.</span>
+        self.collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
+
+    <span class="k">def</span> <span class="f">semantic_search</span>(self, query_text: str, n_results: int = <span class="w">3</span>,
+                        where: Optional[Dict[str, Any]] = <span class="k">None</span>):
+        kwargs = {<span class="s">"query_texts"</span>: [query_text], <span class="s">"n_results"</span>: n_results}
+        <span class="k">if</span> where:
+            kwargs[<span class="s">"where"</span>] = where   <span class="c"># filtro por metadato</span>
+        res = self.collection.<span class="f">query</span>(**kwargs)
+
+        <span class="c"># query() devuelve listas de listas (una por query_text): usamos [0]</span>
+        <span class="k">return</span> [
+            {<span class="s">"document"</span>: doc, <span class="s">"metadata"</span>: meta, <span class="s">"distance"</span>: dist}
+            <span class="k">for</span> doc, meta, dist <span class="k">in</span> zip(res[<span class="s">"documents"</span>][0],
+                                       res[<span class="s">"metadatas"</span>][0],
+                                       res[<span class="s">"distances"</span>][0])]
+
+    <span class="k">def</span> <span class="f">delete_by_id</span>(self, ids: List[str]):
+        self.collection.<span class="f">delete</span>(ids=ids)</pre>
+    </div>
+  </div>
+  <p class="note">Ojo: en ChromaDB la <b>distancia</b> es "menor = más parecido" (lo contrario de la similitud).</p>
+</section>
+
+<!-- 30 -->
+<section class="slide">
+  <h2>Resumen</h2>
+  <ul>
+    <li>Un <b>embedding</b> convierte texto en un vector: significados parecidos ⇒ puntos cercanos.</li>
+    <li><b>Similitud coseno</b>: la métrica estándar en RAG; mide dirección, no longitud.</li>
+    <li>Nunca mezcles modelos de embeddings: cada uno es un <b>espacio distinto</b>.</li>
+    <li><b>Chunking</b> = limpiar + cortar con <code>RecursiveCharacterTextSplitter</code> + <b>overlap</b>, midiendo en <b>tokens</b>.</li>
+    <li><b>ChromaDB</b> con <code>PersistentClient</code>: la memoria sobrevive al reinicio.</li>
+    <li><code>upsert</code> + IDs deterministas; <code>query</code> para semántica, <code>get</code> para exactos; metadatos para filtrar y citar.</li>
+  </ul>
+  <p class="sub">¿Preguntas?</p>
+</section>
+
+<!-- 31 -->
+<section class="slide">
+  <h2>Entrega: RAG asíncrono con ChromaDB</h2>
+  <div class="grid" style="gap:1.4vw;align-items:stretch">
+    <div class="card">
+      <h3>Qué tenés que hacer</h3>
+      <ul>
+        <li>Entorno virtual con <code>langchain</code>, <code>chromadb</code>, <code>openai</code> (o tu provider) y <code>pydantic</code>.</li>
+        <li><b>Script de carga:</b> lee <code>/data</code>, aplica chunking (mín. <b>500 tokens / 50 overlap</b>) y guarda en ChromaDB local.</li>
+        <li>Función async <code>get_rag_response(query: str)</code> que:
+          a) busca en ChromaDB, b) arma el prompt con los fragmentos, c) llama al LLM async, d) parsea a un modelo <b>Pydantic</b> con texto y referencias.</li>
+        <li>Dos pruebas: una pregunta <b>con respuesta</b> en los docs y una <b>"pregunta trampa"</b> sin respuesta (no debe alucinar).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Flujo</h3>
+      <div class="flow" style="flex-direction:column;gap:.4vh">
+        <div class="node">query</div><span class="arrow">↓</span>
+        <div class="node m">ChromaDB.query()<small>top-k chunks</small></div><span class="arrow">↓</span>
+        <div class="node">prompt + contexto</div><span class="arrow">↓</span>
+        <div class="node o">LLM.ainvoke()<small>→ Pydantic {respuesta, referencias}</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="note">Sin llaves de API en el código: usá variables de entorno en <code>.env</code> (y agregalo al <code>.gitignore</code>).</p>
+</section>
+
+<!-- 32 -->
+<section class="slide">
+  <h2>Qué tenés que entregar</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Repositorio de GitHub</h3>
+      <ul>
+        <li>1) Script de <b>ingesta</b> de documentos</li>
+        <li>2) Script/Notebook con la <b>cadena RAG asíncrona</b></li>
+        <li>3) Un <b>dataset de ejemplo</b> (txt/md)</li>
+        <li>4) Un <b>README</b> explicando cómo ejecutar el sistema</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Checklist</h3>
+      <ul>
+        <li>Chunks medidos en tokens con overlap</li>
+        <li><code>PersistentClient</code> + mismo modelo de embeddings</li>
+        <li>Salida Pydantic con <b>referencias</b> (metadatos <code>source</code>)</li>
+        <li>Pregunta trampa respondida con "no lo sé"</li>
+        <li><code>.env</code> fuera del repo</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  // Envuelve el contenido de cada slide para poder escalarlo como un bloque
+  slides.forEach(sl => {
+    const w = document.createElement('div');
+    w.className = 'fit';
+    while (sl.firstChild) w.appendChild(sl.firstChild);
+    sl.appendChild(w);
+  });
+  function fit(sl){
+    const w = sl.querySelector('.fit');
+    if (!w) return;
+    if (sl.classList.contains('scroll')) { w.style.zoom = 1; return; }
+    const overflows = () => sl.scrollHeight > sl.clientHeight + 1 || sl.scrollWidth > sl.clientWidth + 1 ||
+      [...w.querySelectorAll('pre,table')].some(e => e.scrollWidth > e.clientWidth + 1);
+    let z = 1;
+    const apply = () => { w.style.zoom = z; };
+    apply();
+    while (overflows() && z > 0.4) { z = Math.round((z - 0.03) * 100) / 100; apply(); }
+  }
+  const sections = [
+    {name:'Embeddings',   from:2,  to:6},
+    {name:'Similitud',    from:7,  to:10},
+    {name:'Aplicaciones', from:11, to:13},
+    {name:'Chunking',     from:14, to:18},
+    {name:'Ejercicio 1',  from:19, to:23},
+    {name:'ChromaDB',     from:24, to:26},
+    {name:'Ejercicio 2',  from:27, to:29},
+    {name:'Entrega',      from:30, to:32}
+  ];
+  let i = 0;
+  const bar = document.getElementById('bar'), count = document.getElementById('count');
+  const nav = document.getElementById('nav');
+  sections.forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = s.name;
+    b.onclick = () => show(s.from - 1);
+    nav.appendChild(b);
+  });
+  function show(n){
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    fit(slides[i]);
+    bar.style.width = ((i + 1) / slides.length * 100) + '%';
+    count.textContent = (i + 1) + ' / ' + slides.length;
+    [...nav.children].forEach((b, k) => b.classList.toggle('active', i + 1 >= sections[k].from && i + 1 <= sections[k].to));
+    try { history.replaceState(null, '', '#' + (i + 1)); } catch(e) {}
+  }
+  function toggleTheme(){
+    const root = document.documentElement;
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('rag-theme', next); } catch(e) {}
+  }
+  document.getElementById('theme').onclick = toggleTheme;
+  document.getElementById('prev').onclick = () => show(i - 1);
+  document.getElementById('next').onclick = () => show(i + 1);
+  document.addEventListener('keydown', e => {
+    if (['ArrowRight','PageDown',' '].includes(e.key)) { e.preventDefault(); show(i + 1); }
+    else if (['ArrowLeft','PageUp'].includes(e.key)) { e.preventDefault(); show(i - 1); }
+    else if (e.key.toLowerCase() === 't') toggleTheme();
+    else if (e.key === 'Home') show(0);
+    else if (e.key === 'End') show(slides.length - 1);
+    else if (e.key.toLowerCase() === 'f') {
+      document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+    }
+  });
+  show((parseInt(location.hash.slice(1)) || 1) - 1);
+  window.addEventListener('resize', () => fit(slides[i]));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fit(slides[i]));
+</script>
+</body>
+</html>
