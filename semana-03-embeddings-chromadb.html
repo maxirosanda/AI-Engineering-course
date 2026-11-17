@@ -893,7 +893,12 @@ text = <span class="s">"""</span><span class="s">ACME S.A. — Manual interno �
     <div class="card">
       <h3>🏷️ Metadatos = etiquetas</h3>
       <p class="small">Datos extra que se pegan a cada pedazo, como la etiqueta de una carpeta:</p>
-<pre>{<span class="s">"autor"</span>: <span class="s">"Juan"</span>, <span class="s">"fecha"</span>: <span class="s">"2024-05"</span>, <span class="s">"source"</span>: <span class="s">"pdf_v1"</span>}</pre>
+<pre><span class="c"># Un diccionario de Python: pares "clave": valor</span>
+{
+  <span class="s">"autor"</span>: <span class="s">"Juan"</span>,     <span class="c"># quién escribió el texto</span>
+  <span class="s">"fecha"</span>: <span class="s">"2024-05"</span>,  <span class="c"># cuándo (año-mes); sirve para filtrar por período</span>
+  <span class="s">"source"</span>: <span class="s">"pdf_v1"</span>  <span class="c"># de qué documento salió el pedazo (para citar la fuente)</span>
+}</pre>
       <ul class="small">
         <li><b>Filtrar:</b> "buscá solo en los PDF de 2024".</li>
         <li><b>Citar la fuente:</b> saber de qué documento salió cada respuesta.</li>
@@ -928,16 +933,27 @@ text = <span class="s">"""</span><span class="s">ACME S.A. — Manual interno �
 <!-- 30 · Ejercicio 2: prueba -->
 <section class="slide">
   <h2>Ejercicio 2: prueba y qué deberías ver</h2>
-<pre>manager = VectorMemoryManager(<span class="s">"./chroma_db"</span>, <span class="s">"knowledge_base"</span>)
+<pre><span class="c"># Crear (o abrir) la memoria: carpeta en disco + nombre de la colección</span>
+manager = VectorMemoryManager(<span class="s">"./chroma_db"</span>, <span class="s">"knowledge_base"</span>)
+
+<span class="c"># Guardar 3 textos (si el ID ya existe, lo actualiza)</span>
 manager.upsert_documents(
-    [<span class="s">"doc1"</span>, <span class="s">"doc2"</span>, <span class="s">"doc3"</span>],
+    [<span class="s">"doc1"</span>, <span class="s">"doc2"</span>, <span class="s">"doc3"</span>],  <span class="c"># IDs: el nombre único de cada texto</span>
     [<span class="s">"Python 3.12 introduce mejoras en asyncio y tipos."</span>,
      <span class="s">"Las bases de datos vectoriales son clave para la memoria de largo plazo en IA."</span>,
-     <span class="s">"FastAPI permite crear APIs asíncronas en Python."</span>],
-    [{<span class="s">"source"</span>: <span class="s">"news"</span>}, {<span class="s">"source"</span>: <span class="s">"tech_blog"</span>}, {<span class="s">"source"</span>: <span class="s">"tech_blog"</span>}])
+     <span class="s">"FastAPI permite crear APIs asíncronas en Python."</span>],  <span class="c"># los textos</span>
+    [{<span class="s">"source"</span>: <span class="s">"news"</span>}, {<span class="s">"source"</span>: <span class="s">"tech_blog"</span>}, {<span class="s">"source"</span>: <span class="s">"tech_blog"</span>}])  <span class="c"># etiquetas</span>
+
+<span class="c"># Búsqueda por significado (no por palabras exactas)</span>
 <span class="f">print</span>(manager.semantic_search(<span class="s">"mejoras en python"</span>))
+
+<span class="c"># Misma búsqueda, pero solo entre los textos con etiqueta source = tech_blog</span>
 <span class="f">print</span>(manager.semantic_search(<span class="s">"memoria de IA"</span>, where={<span class="s">"source"</span>: <span class="s">"tech_blog"</span>}))
+
+<span class="c"># Borrar un texto por su ID</span>
 manager.delete_by_id([<span class="s">"doc2"</span>])
+
+<span class="c"># Contar cuántos textos quedan en la colección (debería dar 2)</span>
 <span class="f">print</span>(manager.collection.count())</pre>
   <ul class="small">
     <li>La 1.ª búsqueda trae primero el texto de <b>Python 3.12</b>: es el que más se parece a "mejoras en python".</li>
