@@ -86,7 +86,7 @@
   @media (max-width:1000px){.grid{grid-template-columns:repeat(2,1fr)}}
   @media (max-width:640px){.grid{grid-template-columns:1fr}.counter{display:none}main{padding:4vh 5vw 6vh}}
 </style>
-<script>try{var t=localStorage.getItem('curso-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<script>try{var q=new URLSearchParams(location.search).get('tema');var t=(q==='dark'||q==='light')?q:localStorage.getItem('curso-theme');if(q==='dark'||q==='light')localStorage.setItem('curso-theme',q);if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 </head>
 <body>
 
@@ -163,7 +163,10 @@
     const disponible = !!c.archivo;
     const el = document.createElement(disponible ? 'a' : 'div');
     el.className = 'clase' + (disponible ? '' : ' pronto');
-    if (disponible) el.href = c.archivo; else el.setAttribute('aria-disabled', 'true');
+    if (disponible) {
+      el.href = c.archivo;
+      el.addEventListener('click', ev => { ev.preventDefault(); location.href = conTema(c.archivo); });
+    } else el.setAttribute('aria-disabled', 'true');
     el.innerHTML = `
       <span class="num">${String(c.semana).padStart(2, '0')}</span>
       <span class="semana">Semana ${c.semana} · Clase ${c.semana}</span>
@@ -181,7 +184,13 @@
   document.getElementById('count').textContent = `${listas} / ${clases.length} clases`;
   requestAnimationFrame(() => document.getElementById('bar').style.width = (listas / clases.length * 100) + '%');
 
-  // Tema claro/oscuro (se recuerda entre visitas)
+  // Lleva el tema actual (claro/oscuro) a la página siguiente
+  function conTema(url){
+    const t = document.documentElement.getAttribute('data-theme') || 'light';
+    return url + (url.includes('?') ? '&' : '?') + 'tema=' + t;
+  }
+
+  // Tema claro/oscuro (se recuerda entre visitas y entre páginas)
   function toggleTheme(){
     const root = document.documentElement;
     const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
@@ -195,7 +204,7 @@
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key.toLowerCase() === 't') toggleTheme();
     const c = clases.find(x => String(x.semana) === e.key);
-    if (c && c.archivo) location.href = c.archivo;
+    if (c && c.archivo) location.href = conTema(c.archivo);
   });
 </script>
 </body>

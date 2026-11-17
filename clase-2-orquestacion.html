@@ -160,8 +160,12 @@ html,body{transition:background .3s,color .3s}
   .slide.scroll .card{display:flex;flex-direction:column;min-height:0}
   .slide.scroll .card pre{flex:1;min-height:0;overflow:auto;font-size:clamp(.78rem,1.15vw,1rem)}
   @media print{.slide.scroll .card pre{overflow:visible}}
+  /* ===== Botón para volver al índice ===== */
+  a.round{text-decoration:none}
+  .home svg{width:1.2rem;height:1.2rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .logo a{display:flex;align-items:center;text-decoration:none}
 </style>
-<script>try{var t=localStorage.getItem('lcel-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<script>try{var q=new URLSearchParams(location.search).get('tema');var t=(q==='dark'||q==='light')?q:localStorage.getItem('curso-theme');if(q==='dark'||q==='light')localStorage.setItem('curso-theme',q);if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 </head>
 <body>
 <div class="announce">
@@ -172,11 +176,16 @@ html,body{transition:background .3s,color .3s}
 </div>
 <header class="top">
   <div class="logo">
+    <a href="index.html" class="to-index" title="Volver al índice">
     <img id="ulogo" src="logo.png" alt="" onload="document.getElementById('flogo').style.display='none'" onerror="this.style.display='none'">
     <span id="flogo" class="wordmark">LCEL<i>|</i>Class</span>
+    </a>
   </div>
   <nav id="nav"></nav>
   <div class="actions">
+    <a class="round home to-index" href="index.html" title="Volver al índice (I)" aria-label="Volver al índice del curso">
+      <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg>
+    </a>
     <button class="round theme" id="theme" title="Cambiar tema (T)" aria-label="Cambiar entre modo claro y oscuro">
       <svg class="moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
       <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
@@ -961,15 +970,24 @@ asyncio.run(main())</pre>
     const root = document.documentElement;
     const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     root.setAttribute('data-theme', next);
-    try { localStorage.setItem('lcel-theme', next); } catch(e) {}
+    try { localStorage.setItem('curso-theme', next); } catch(e) {}
   }
   document.getElementById('theme').onclick = toggleTheme;
+  // Lleva el tema actual (claro/oscuro) a la página siguiente
+  function conTema(url){
+    const t = document.documentElement.getAttribute('data-theme') || 'light';
+    return url + (url.includes('?') ? '&' : '?') + 'tema=' + t;
+  }
+  document.querySelectorAll('a.to-index').forEach(a => a.addEventListener('click', ev => {
+    ev.preventDefault(); location.href = conTema('index.html');
+  }));
   document.getElementById('prev').onclick = () => show(i - 1);
   document.getElementById('next').onclick = () => show(i + 1);
   document.addEventListener('keydown', e => {
     if (['ArrowRight','PageDown',' '].includes(e.key)) { e.preventDefault(); show(i + 1); }
     else if (['ArrowLeft','PageUp'].includes(e.key)) { e.preventDefault(); show(i - 1); }
     else if (e.key.toLowerCase() === 't') toggleTheme();
+    else if (e.key.toLowerCase() === 'i') location.href = conTema('index.html');
     else if (e.key === 'Home') show(0);
     else if (e.key === 'End') show(slides.length - 1);
     else if (e.key.toLowerCase() === 'f') {
