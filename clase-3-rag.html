@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Clase: Embeddings, Chunking y ChromaDB</title>
+<title>Clase: cómo una IA encuentra información (Embeddings, Chunking y ChromaDB)</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
   :root{
@@ -160,13 +160,40 @@ html,body{transition:background .3s,color .3s}
   .slide.scroll .card{display:flex;flex-direction:column;min-height:0}
   .slide.scroll .card pre{flex:1;min-height:0;overflow:auto;font-size:clamp(.78rem,1.15vw,1rem)}
   @media print{.slide.scroll .card pre{overflow:visible}}
+
+  /* ===== Gráficos SVG (mapa de significados, flechas del coseno) ===== */
+  .viz{display:block;width:100%;height:auto;max-height:36vh}
+  .viz text{font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:15px;fill:var(--ink)}
+  .viz .grp{font-weight:700;fill:var(--muted);font-size:14px;letter-spacing:.04em}
+  .viz .cl{fill:var(--peach);stroke:var(--orange);stroke-width:1.5;stroke-dasharray:5 5;opacity:.7}
+  .viz .pt{fill:var(--orange)}
+  .viz .org{fill:var(--muted)}
+  .viz .near{stroke:var(--ok);stroke-width:3}
+  .viz .far{stroke:var(--bad);stroke-width:2.5;stroke-dasharray:7 6}
+  .viz .t-ok{fill:var(--ok);font-weight:700}
+  .viz .t-bad{fill:var(--bad);font-weight:700}
+  .viz .vec{stroke:var(--ink);stroke-width:3;fill:none}
+  .viz .vec.c{stroke:var(--orange)}
+  .viz .ah{fill:var(--ink)}
+  .viz .ah.c{fill:var(--orange)}
+  .viz .arc-ok{stroke:var(--ok);stroke-width:4;fill:none}
+  .viz .arc-bad{stroke:var(--bad);stroke-width:4;fill:none}
+  .viz .lbl{font-weight:800;font-size:20px}
+  .cap{font-size:clamp(.72rem,1.05vw,.88rem)!important;color:var(--muted);text-align:center;margin-top:.4vh}
+  .c-ok{color:var(--ok);font-weight:700} .c-bad{color:var(--bad);font-weight:700}
+  /* Tablas cuya primera columna es texto común (no código) */
+  table.plain td:first-child{font-family:inherit;color:var(--ink);font-weight:700}
+  .small, .small li{font-size:clamp(.85rem,1.4vw,1.1rem)}
+  /* Código largo: que se desplace dentro de la tarjeta en vez de empujarla */
+  .slide.scroll .fit{width:100%}
+  .slide.scroll .grid, .slide.scroll .card, .slide.scroll .card pre{min-width:0;max-width:100%}
 </style>
 <script>try{var t=localStorage.getItem('rag-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 </head>
 <body>
 <div class="announce">
   <span class="pill-dark">CLASE RAG 🧭</span>
-  <span>Embeddings, <b style="color:#fff">chunking</b> y memoria vectorial con ChromaDB</span>
+  <span>Cómo una IA <b style="color:#fff">encuentra información</b> en tus documentos</span>
   <span class="sep"></span>
   <span>Clase del 17/11</span>
 </div>
@@ -189,342 +216,411 @@ html,body{transition:background .3s,color .3s}
 </header>
 <div class="deck" id="deck">
 
-<!-- 1 -->
+<!-- 1 · Portada -->
 <section class="slide center">
-  <span class="tag">Clase · RAG</span>
-  <h1>Embeddings, Chunking<br><span class="hl">y ChromaDB</span></h1>
-  <p class="sub">Del texto a la geometría: buscar por <b>significado</b>, no por palabras</p>
+  <span class="tag">Clase · Búsqueda con IA</span>
+  <h1>¿Cómo encuentra una IA<br><span class="hl">la información correcta?</span></h1>
+  <p class="sub">Embeddings, chunking y ChromaDB, explicados paso a paso</p>
   <p class="sub" style="font-size:1rem">Flechas ← → para navegar · F para pantalla completa · T para cambiar tema</p>
 </section>
 
-<!-- 2 -->
+<!-- 2 · Qué es RAG -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Para ubicarnos</span>
+  <h2>¿Qué es RAG?</h2>
+  <p class="big">Un sistema <b>RAG</b> hace que una IA como ChatGPT <b>busque en tus documentos antes de responder</b>, en vez de contestar solo con lo que aprendió de memoria.</p>
+  <div class="flow">
+    <div class="node">Pregunta<small>"¿cuánto tarda un envío?"</small></div><span class="arrow">→</span>
+    <div class="node m">Buscar<small>en tus documentos</small></div><span class="arrow">→</span>
+    <div class="node">La IA lee lo encontrado<small>"demoran 48 horas hábiles"</small></div><span class="arrow">→</span>
+    <div class="node o">Respuesta<small>con la fuente citada</small></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h3>📖 Como un examen a libro abierto</h3><p class="small">La IA no necesita saberse todo: consulta el material y responde con lo que encontró.</p></div>
+    <div class="card"><h3>🔤 La sigla</h3><p class="small"><b>R</b>etrieval-<b>A</b>ugmented <b>G</b>eneration: "generar una respuesta con ayuda de lo que se buscó".</p></div>
+  </div>
+  <p class="note">Hoy vemos las piezas de la <b>búsqueda</b>: cómo comparar significados (<b>embeddings</b>), cómo cortar los documentos (<b>chunking</b>) y dónde guardarlos (<b>ChromaDB</b>).</p>
+</section>
+
+<!-- 3 · Agenda -->
 <section class="slide">
   <h2>Qué vamos a ver hoy</h2>
   <ul>
-    <li>Por qué falla la búsqueda por palabras clave</li>
-    <li>Qué es un <b>embedding</b> y por qué es un vector denso</li>
-    <li>Métricas de similitud: <b>coseno</b>, <b>euclídea</b> y <b>producto punto</b></li>
-    <li>Modelos estáticos vs contextuales</li>
-    <li>Aplicaciones reales y errores comunes</li>
-    <li><b>Chunking</b>: limpieza, recursive splitting y overlap</li>
-    <li><b>ChromaDB</b> local: operaciones CRUD y metadatos</li>
-    <li>Dos ejercicios y la entrega: un RAG asíncrono completo</li>
+    <li>Por qué buscar por <b>palabras exactas</b> no alcanza</li>
+    <li>Qué es un <b>embedding</b>: el significado de un texto convertido en números</li>
+    <li>Cómo se mide si dos textos <b>"dicen lo mismo"</b></li>
+    <li>Para qué se usa y qué errores conviene evitar</li>
+    <li><b>Chunking</b>: cómo cortar documentos largos en pedazos útiles</li>
+    <li><b>ChromaDB</b>: dónde guardar todo para no perderlo</li>
+    <li>Dos ejercicios prácticos y la entrega final</li>
   </ul>
 </section>
 
-<!-- 3 -->
+<!-- 4 · El problema -->
 <section class="slide">
   <span class="tag" style="align-self:flex-start">El problema</span>
-  <h2>El talón de Aquiles de las palabras clave</h2>
-  <p>Buscás un documento sobre <b>"cómo limitar el tráfico de red"</b>. Tu búsqueda dice <code>limitar tráfico</code>, pero el documento dice otra cosa:</p>
+  <h2>Buscar por palabras exactas no alcanza</h2>
+  <p>Querés encontrar un documento sobre <b>"cómo limitar el tráfico de red"</b> y escribís <code>limitar tráfico</code>. Pero el documento lo dice con otras palabras.</p>
   <div class="grid">
     <div class="card bad">
-      <span class="tag bad">búsqueda por keywords</span>
-      <p><code>"limitar tráfico"</code> no encuentra <code>"restricción de ancho de banda"</code> ni <code>"rate-limiting"</code>. No comparten letras.</p>
+      <span class="tag bad">búsqueda por palabras</span>
+      <p>Funciona como el <b>Ctrl+F</b>: busca <b>las mismas letras</b>. Si el documento dice <code>"restricción de ancho de banda"</code>, no lo encuentra.</p>
     </div>
     <div class="card ok">
-      <span class="tag ok">búsqueda semántica</span>
-      <p>Las tres frases <b>significan lo mismo</b>, así que quedan <b>cerca</b> en el espacio de embeddings. Se encuentran.</p>
+      <span class="tag ok">búsqueda por significado</span>
+      <p>Entiende que <b>"limitar tráfico"</b> y <b>"restricción de ancho de banda"</b> quieren decir lo mismo. <b>Lo encuentra.</b></p>
     </div>
   </div>
-  <p class="note">Problema: la <b>rigidez terminológica</b>. Solución: transformar el lenguaje en <b>geometría</b> y medir qué tan "cerca" están dos ideas.</p>
+  <p class="note">La idea de hoy: convertir cada texto en <b>números que representen su significado</b>. Si los números se parecen, los textos se parecen.</p>
 </section>
 
-<!-- 4 -->
+<!-- 5 · Qué es un embedding -->
 <section class="slide">
-  <span class="tag" style="align-self:flex-start">Concepto clave · Embedding</span>
+  <span class="tag" style="align-self:flex-start">Concepto clave</span>
   <h2>¿Qué es un embedding?</h2>
-  <p class="big">Un <b>embedding</b> es una <b>lista de números</b> (un vector) que captura el <b>significado</b> de un fragmento de texto.</p>
+  <p class="big">Un <b>embedding</b> es una <b>lista de números</b> que representa el <b>significado</b> de un texto.</p>
   <div class="flow">
     <div class="node">"No queda espacio en el disco"<small>texto</small></div>
     <span class="arrow">→</span>
-    <div class="node m">Modelo de embeddings<small>text-embedding-3-small</small></div>
+    <div class="node m">Modelo de embeddings<small>un programa ya entrenado</small></div>
     <span class="arrow">→</span>
-    <div class="node o">[0.021, -0.113, 0.087, ...]<small>1536 floats</small></div>
+    <div class="node o">[0.021, -0.113, 0.087, ...]<small>1536 números</small></div>
   </div>
-  <p>Formalmente: una <b>representación numérica densa</b> de un objeto (texto, pero también imagen o audio) en un espacio vectorial de alta dimensionalidad.</p>
+  <table>
+    <tr><th>Palabra</th><th>Qué significa</th></tr>
+    <tr><td>vector</td><td>Una lista ordenada de números. Un embedding es un vector.</td></tr>
+    <tr><td>dimensión</td><td>Cada posición de esa lista. "1536 dimensiones" = 1536 números.</td></tr>
+    <tr><td>denso</td><td>Que <b>todas</b> las posiciones tienen un valor útil: ninguna está vacía.</td></tr>
+  </table>
 </section>
 
-<!-- 5 -->
-<section class="slide">
-  <h2>De lo discreto a lo denso</h2>
-  <div class="grid">
-    <div class="card bad">
-      <span class="tag bad">One-Hot Encoding</span>
-<pre><span class="c"># vocabulario de 50.000 palabras</span>
-perro = [0, 0, 0, ..., <span class="w">1</span>, ..., 0]
-<span class="c"># 50.000 elementos, un solo 1</span></pre>
-      <p>La distancia entre <b>"perro"</b> y <b>"canino"</b> es la misma que entre <b>"perro"</b> y <b>"microprocesador"</b>. No hay noción de significado.</p>
-    </div>
-    <div class="card ok">
-      <span class="tag ok">Embedding denso</span>
-<pre>perro  = [0.42, -0.18, 0.77, ...]
-canino = [0.40, -0.21, 0.74, ...]
-<span class="c"># 1536 a 3072 dimensiones</span></pre>
-      <p>Cada dimensión es una <b>característica abstracta</b> aprendida por el modelo. Conceptos parecidos ⇒ vectores parecidos.</p>
-    </div>
-  </div>
-</section>
-
-<!-- 6 -->
+<!-- 6 · Mapa de significados -->
 <section class="slide">
   <span class="tag" style="align-self:flex-start">Analogía</span>
-  <h2>El mapa de significados</h2>
-  <div class="grid">
-    <div class="card">
-      <h3>🗺️ Un mapa 2D</h3>
-      <p><b>Madrid</b> en (40, -3) y <b>Lisboa</b> en (38, -9). La distancia entre los puntos refleja su <b>cercanía geográfica</b>.</p>
+  <h2>Un mapa de significados</h2>
+  <div class="grid" style="grid-template-columns:1fr 1.3fr;align-items:center">
+    <div style="display:flex;flex-direction:column;gap:1.5vh">
+      <div class="card"><h3>🗺️ En un mapa común</h3><p class="small">Dos números ubican una ciudad: Madrid (40, -3) y Lisboa (38, -9). Como sus números se parecen, están <b>cerca</b>.</p></div>
+      <div class="card"><h3>🧭 En un embedding</h3><p class="small">Pasa lo mismo con los significados, pero con <b>1536 números</b> en vez de 2. No se puede dibujar, pero la idea es igual.</p></div>
     </div>
-    <div class="card">
-      <h3>🧭 Un embedding</h3>
-      <p>Hace lo mismo pero en <b>miles de dimensiones</b>: coloca "Rey" cerca de "Hombre" y "Reina" cerca de "Mujer", manteniendo las relaciones entre conceptos.</p>
-    </div>
-  </div>
-  <p class="note">Una vez que los textos son <b>puntos en un espacio</b>, "buscar algo parecido" se convierte en "buscar el punto más cercano".</p>
-</section>
-
-<!-- 7 -->
-<section class="slide">
-  <h2>La geometría de la similitud</h2>
-  <p>Si los textos son puntos, ¿cómo medimos qué tan parecidos son? Tres métricas principales:</p>
-  <table>
-    <tr><th>Métrica</th><th>Qué mide</th><th>Cuándo usarla</th></tr>
-    <tr><td>Coseno</td><td>El <b>ángulo</b> entre vectores (dirección)</td><td>Estándar en RAG: ignora la longitud del texto</td></tr>
-    <tr><td>Euclídea (L2)</td><td>La distancia en <b>línea recta</b></td><td>Cuando los vectores están normalizados</td></tr>
-    <tr><td>Producto punto</td><td>Magnitudes × coseno del ángulo</td><td>Recomendadores, donde la "intensidad" importa</td></tr>
-  </table>
-</section>
-
-<!-- 8 -->
-<section class="slide">
-  <h2>Las tres métricas en detalle</h2>
-  <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
-    <div class="card ok">
-      <span class="tag ok">la más usada</span>
-      <h3>Similitud coseno</h3>
-      <p style="font-size:clamp(.85rem,1.4vw,1.1rem)">Captura la <b>dirección</b>: no importa si un texto es más largo, sino que "apunten" al mismo concepto. Rango -1 a 1 (en texto, suele ser 0 a 1).</p>
-    </div>
-    <div class="card">
-      <span class="tag">ojo con la magnitud</span>
-      <h3>Euclídea (L2)</h3>
-      <p style="font-size:clamp(.85rem,1.4vw,1.1rem)">Muy sensible al <b>tamaño</b> del vector. Un párrafo y una oración del mismo tema pueden quedar lejos.</p>
-    </div>
-    <div class="card">
-      <span class="tag">recomendadores</span>
-      <h3>Producto punto</h3>
-      <p style="font-size:clamp(.85rem,1.4vw,1.1rem)">Combina ángulo y magnitud. Útil cuando la <b>importancia</b> de un vector (su largo) es relevante.</p>
+    <div class="card" style="padding:1.2vh 1vw">
+      <svg class="viz" viewBox="0 0 640 260" role="img" aria-label="Mapa de ejemplo: perro, canino y gato quedan juntos; microprocesador y disco duro, juntos y lejos de los animales; manzana y pera, en otro grupo">
+        <ellipse class="cl" cx="140" cy="95" rx="115" ry="62"/>
+        <ellipse class="cl" cx="490" cy="95" rx="125" ry="62"/>
+        <ellipse class="cl" cx="320" cy="212" rx="100" ry="36"/>
+        <text class="grp" x="140" y="22" text-anchor="middle">ANIMALES</text>
+        <text class="grp" x="490" y="22" text-anchor="middle">TECNOLOGÍA</text>
+        <text class="grp" x="208" y="217" text-anchor="end">FRUTAS</text>
+        <line class="near" x1="100" y1="75" x2="125" y2="105"/>
+        <line class="far" x1="125" y1="105" x2="470" y2="120"/>
+        <text class="t-ok" x="122" y="84">cerca</text>
+        <text class="t-bad" x="297" y="101" text-anchor="middle">lejos</text>
+        <circle class="pt" cx="100" cy="75" r="6"/><text x="88" y="80" text-anchor="end">perro</text>
+        <circle class="pt" cx="125" cy="105" r="6"/><text x="113" y="110" text-anchor="end">canino</text>
+        <circle class="pt" cx="190" cy="125" r="6"/><text x="178" y="130" text-anchor="end">gato</text>
+        <circle class="pt" cx="430" cy="80" r="6"/><text x="442" y="85">microprocesador</text>
+        <circle class="pt" cx="470" cy="120" r="6"/><text x="482" y="125">disco duro</text>
+        <circle class="pt" cx="285" cy="205" r="6"/><text x="297" y="210">manzana</text>
+        <circle class="pt" cx="345" cy="228" r="6"/><text x="357" y="233">pera</text>
+      </svg>
+      <p class="cap">Ejemplo ilustrativo, reducido a 2 dimensiones</p>
     </div>
   </div>
-  <p class="note"><b>Regla de oro:</b> ChromaDB o Pinecone te dejan elegir la métrica. Con modelos de OpenAI o HuggingFace, si no normalizaste los vectores, la <b>similitud coseno</b> es casi siempre la elección correcta.</p>
+  <p class="note">Textos con significado parecido quedan <b>cerca</b>; los que no tienen nada que ver quedan <b>lejos</b>. Buscar "algo parecido" es buscar <b>el punto más cercano</b>.</p>
 </section>
 
-<!-- 9 -->
+<!-- 7 · Por qué "denso" -->
 <section class="slide">
-  <h2>Del contexto a la representación</h2>
+  <h2>¿Por qué decimos que es "denso"?</h2>
   <div class="grid">
     <div class="card bad">
-      <span class="tag bad">estáticos</span>
-      <h3>Word2Vec, GloVe</h3>
-      <p>Cada palabra tiene <b>un único vector</b>. "banco" (para sentarse) y "banco" (entidad financiera) comparten embedding. El sistema es <b>ciego al contexto</b>.</p>
+      <span class="tag bad">la forma antigua: "one-hot"</span>
+      <p class="small">Cada palabra del vocabulario tiene <b>su propio casillero</b>. El vector tiene un <b>1</b> en el casillero de esa palabra y <b>0</b> en todos los demás (de ahí el nombre: un solo casillero "encendido"). Solo dice <b>qué palabra es</b>, no qué significa: "perro" se parece a "canino" lo mismo que a "microprocesador", o sea, nada.</p>
     </div>
     <div class="card ok">
-      <span class="tag ok">contextuales</span>
-      <h3>BERT, Ada, Voyage</h3>
-      <p>La misma palabra genera <b>vectores distintos</b> según lo que la rodea. En "me senté en el banco", el modelo entiende que es mobiliario urbano.</p>
+      <span class="tag ok">la forma actual: embedding denso</span>
+      <p class="small"><b>Todos</b> los casilleros tienen un valor, y cada uno describe una <b>característica</b> del significado. Por eso las palabras parecidas tienen números parecidos.</p>
     </div>
   </div>
-  <p>Como desarrollador, vas a usar modelos de embeddings <b>vía API</b> (OpenAI, Voyage, Cohere). Ej: <code>text-embedding-3-small</code> recibe un string y devuelve <b>1536 floats</b>.</p>
+  <p class="small"><b>Ejemplo con un vocabulario de solo 4 palabras:</b></p>
+  <table>
+    <tr><th>Palabra</th><th>One-hot: 4 casilleros (1 por palabra)</th><th>Embedding: 3 casilleros (los elige el modelo)</th></tr>
+    <tr><td>perro</td><td><code>[1, 0, 0, 0]</code></td><td><code>[0.9, 0.8, 0.1]</code></td></tr>
+    <tr><td>canino</td><td><code>[0, 1, 0, 0]</code></td><td><code>[0.9, 0.7, 0.1]</code> ← parecido a perro</td></tr>
+    <tr><td>gato</td><td><code>[0, 0, 1, 0]</code></td><td><code>[0.8, 0.2, 0.1]</code></td></tr>
+    <tr><td>microprocesador</td><td><code>[0, 0, 0, 1]</code></td><td><code>[0.0, 0.1, 0.9]</code> ← lejos de todos</td></tr>
+  </table>
+  <p class="note">Dentro de cada sistema, <b>todas las palabras tienen el mismo largo</b>. En one-hot, ese largo es la cantidad de palabras del vocabulario (50.000 palabras → vectores de 50.000). En un embedding lo fija el modelo (por ejemplo, 1536), sin importar cuántas palabras existan.</p>
 </section>
 
-<!-- 10 -->
+<!-- 8 · De palabra a números -->
 <section class="slide">
-  <h2>Ejemplo conceptual en Python</h2>
-<pre><span class="k">import</span> openai
-
-<span class="c"># Texto A: "El sistema de archivos está lleno"</span>
-<span class="c"># Texto B: "No queda espacio en el disco duro"</span>
-<span class="c"># Texto C: "Me gusta comer manzanas"</span>
-
-<span class="c"># El modelo generará vectores tales que:</span>
-<span class="c"># sim_coseno(Vector A, Vector B) ≈ 0.85  (alta similitud semántica)</span>
-<span class="c"># sim_coseno(Vector A, Vector C) ≈ 0.15  (baja similitud semántica)</span></pre>
+  <span class="tag" style="align-self:flex-start">Ejemplo práctico</span>
+  <h2>¿Cómo pasa "perro" de palabra a números?</h2>
   <div class="flow">
-    <div class="node">A: "sistema de archivos lleno"</div><span class="arrow">≈</span>
-    <div class="node m">B: "sin espacio en disco"<small>0.85</small></div>
-    <span class="arrow">≠</span>
-    <div class="node">C: "comer manzanas"<small>0.15</small></div>
+    <div class="node">"perro"<small>texto</small></div><span class="arrow">→</span>
+    <div class="node">Vocabulario<small>la identifica</small></div><span class="arrow">→</span>
+    <div class="node m">Número 3417<small>su "DNI"</small></div><span class="arrow">→</span>
+    <div class="node">Fila 3417 de la planilla<small>la describe</small></div><span class="arrow">→</span>
+    <div class="node o">[0.42, -0.18, 0.77, ...]<small>1536 números</small></div>
   </div>
-  <p class="note">A y B no comparten <b>ninguna palabra clave</b>, pero el embedding los pone juntos.</p>
+  <div class="grid">
+    <div class="card">
+      <h3>🪪 El vocabulario es como el DNI</h3>
+      <p class="small">A cada palabra le asigna un número: <code>perro → 3417</code>. Sirve para <b>identificarla</b>, pero no dice nada de cómo es.</p>
+    </div>
+    <div class="card">
+      <h3>📋 La planilla del modelo son las fichas</h3>
+      <p class="small"><b>50.000 filas</b> (una por palabra) × <b>1536 columnas</b>. Las columnas son <b>características compartidas</b>, no una por palabra: para describir a 50.000 personas tampoco hacen falta 50.000 datos de cada una; alcanza con altura, edad, ciudad...</p>
+    </div>
+  </div>
+<pre><span class="c"># Para curiosos: la cuenta que conecta las dos ideas (el one-hot tiene un solo 1,</span>
+<span class="c"># así que multiplicar equivale a "sacar la fila 3417" de la planilla)</span>
+one_hot(<span class="s">"perro"</span>)  ×  planilla           =  embedding(<span class="s">"perro"</span>)
+[1 × <span class="w">50.000</span>]          [<span class="w">50.000</span> × <span class="w">1536</span>]          [1 × <span class="w">1536</span>]</pre>
+  <p class="note">En la práctica, el modelo usa el número 3417 para <b>ir directo a esa fila</b>. Los modelos actuales, además, combinan cada palabra con las de alrededor y devuelven <b>un solo vector</b> para todo el texto.</p>
 </section>
 
-<!-- 11 -->
+<!-- 9 · Similitud coseno -->
 <section class="slide">
-  <h2>Aplicaciones en el mundo real</h2>
-  <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
-    <div class="card">
-      <h3>Búsqueda semántica</h3>
-      <p style="font-size:clamp(.85rem,1.4vw,1.1rem)">Notion o GitHub: buscás <b>"problemas de pagos"</b> y aparece <b>"error en la pasarela de Stripe"</b> o <b>"transacción declinada"</b>.</p>
+  <span class="tag" style="align-self:flex-start">Medir el parecido</span>
+  <h2>Similitud coseno: ¿apuntan hacia el mismo lado?</h2>
+  <p>Imaginá cada embedding como una <b>flecha</b>. Para saber si dos textos se parecen, miramos el <b>ángulo</b> entre sus flechas.</p>
+  <div class="grid" style="grid-template-columns:1fr 1.25fr;align-items:center">
+    <div class="card" style="padding:1.2vh 1vw">
+      <svg class="viz" viewBox="0 0 300 240" role="img" aria-label="Tres flechas desde un mismo punto: A y B casi juntas, C apuntando hacia otro lado">
+        <defs>
+          <marker id="ahd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="13" markerHeight="13" markerUnits="userSpaceOnUse" orient="auto"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="ahc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="13" markerHeight="13" markerUnits="userSpaceOnUse" orient="auto"><path class="ah c" d="M0,0 L10,5 L0,10 z"/></marker>
+        </defs>
+        <path class="arc-ok" d="M138.3,198.4 A80,80 0 0,0 121.3,163.6"/>
+        <path class="arc-bad" d="M104,205.6 A45,45 0 0,0 56.1,170.2"/>
+        <line class="vec" x1="60" y1="215" x2="265.4" y2="171.3" marker-end="url(#ahd)"/>
+        <line class="vec" x1="60" y1="215" x2="236.2" y2="67.2" marker-end="url(#ahd)"/>
+        <line class="vec c" x1="60" y1="215" x2="43.9" y2="30.7" marker-end="url(#ahc)"/>
+        <circle class="org" cx="60" cy="215" r="4"/>
+        <text class="lbl" x="272" y="178">A</text>
+        <text class="lbl" x="243" y="64">B</text>
+        <text class="lbl" x="36" y="34" text-anchor="end">C</text>
+      </svg>
     </div>
     <div class="card">
-      <h3>Deduplicación</h3>
-      <p style="font-size:clamp(.85rem,1.4vw,1.1rem)">Soporte técnico (Zendesk): agrupar <b>"¿cómo cambio mi clave?"</b> con <b>"¿procedimiento para resetear password?"</b>.</p>
+      <ul class="small">
+        <li><b>A:</b> "El sistema de archivos está lleno"<br><b>B:</b> "No queda espacio en el disco duro"<br>Ángulo <span class="c-ok">chico (verde)</span>: <b>dicen casi lo mismo</b>. Por ejemplo, 0.85.</li>
+        <li><b>C:</b> "Me gusta comer manzanas"<br>Ángulo <span class="c-bad">grande (rojo)</span> con A: <b>nada que ver</b>. Por ejemplo, 0.15.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note">Con textos, la similitud suele ir de <b>0</b> (nada que ver) a <b>1</b> (mismo significado). El <b>largo</b> de la flecha no importa: solo cuenta <b>hacia dónde apunta</b>. Algunas herramientas muestran la <b>distancia coseno</b> (1 − similitud): ahí, <b>cuanto más chica, más parecidos</b>.</p>
+  <p class="small" style="color:var(--muted)">Existen otras formas de medir el parecido (como la distancia euclídea o el producto punto), pero para buscar textos la más usada es el coseno. Si una herramienta te deja elegir, usá coseno.</p>
+</section>
+
+<!-- 11 · Contexto -->
+<section class="slide">
+  <h2>Una palabra, varios significados</h2>
+  <p>"Banco" puede ser <b>un asiento</b> o <b>una entidad financiera</b>. ¿Cómo sabe el modelo cuál es?</p>
+  <div class="grid">
+    <div class="card bad">
+      <span class="tag bad">modelos antiguos</span>
+      <h3>Word2Vec, GloVe</h3>
+      <p>Cada palabra tiene <b>un solo vector</b>, siempre el mismo. Los dos "banco" quedan iguales: el modelo <b>no mira el contexto</b>.</p>
+    </div>
+    <div class="card ok">
+      <span class="tag ok">modelos actuales</span>
+      <h3>BERT, Ada de OpenAI, Voyage</h3>
+      <p>Miran las <b>palabras de alrededor</b>. En "me senté en el banco de la plaza", entienden que es un asiento.</p>
+    </div>
+  </div>
+  <p class="note">Hoy se usan los modelos actuales: por eso el mismo texto puede dar números distintos según la frase completa.</p>
+</section>
+
+<!-- 12 · En la práctica: API -->
+<section class="slide">
+  <h2>En la práctica: se lo pedís a un servicio</h2>
+  <p>No hace falta crear un modelo propio. Le mandás el texto a un servicio en internet (una <b>API</b>) y te devuelve los números. Por ejemplo, <code>text-embedding-3-small</code> de OpenAI devuelve <b>1536 números</b> por texto.</p>
+<pre><span class="k">from</span> openai <span class="k">import</span> OpenAI
+<span class="k">import</span> numpy <span class="k">as</span> np
+
+client = OpenAI()  <span class="c"># usa tu clave, guardada en OPENAI_API_KEY</span>
+resp = client.embeddings.<span class="f">create</span>(
+    model=<span class="s">"text-embedding-3-small"</span>,
+    input=[<span class="s">"El sistema de archivos está lleno"</span>,   <span class="c"># A</span>
+           <span class="s">"No queda espacio en el disco duro"</span>,   <span class="c"># B</span>
+           <span class="s">"Me gusta comer manzanas"</span>])           <span class="c"># C</span>
+a, b, c = [d.embedding <span class="k">for</span> d <span class="k">in</span> resp.data]  <span class="c"># 3 listas de 1536 números</span>
+
+<span class="k">def</span> <span class="f">coseno</span>(x, y):
+    <span class="k">return</span> np.dot(x, y) / (np.linalg.norm(x) * np.linalg.norm(y))
+
+<span class="f">print</span>(coseno(a, b))  <span class="c"># alto: dicen casi lo mismo</span>
+<span class="f">print</span>(coseno(a, c))  <span class="c"># bajo: no tienen nada que ver</span></pre>
+  <p class="note">A y B no comparten <b>ninguna palabra importante</b>, pero quedan cerca. Eso es buscar por significado.</p>
+</section>
+
+<!-- 13 · Aplicaciones -->
+<section class="slide">
+  <h2>¿Para qué se usa en una empresa?</h2>
+  <p>En todos estos casos, la persona escribe con <b>sus propias palabras</b> y el sistema igual encuentra lo que busca.</p>
+  <div class="grid">
+    <div class="card">
+      <h3>🗂️ Buscador de políticas internas</h3>
+      <p class="small">Un empleado pregunta <b>"¿cuántos días de vacaciones tengo?"</b> y aparece el manual de RR. HH. donde dice <b>"licencia anual ordinaria"</b>, aunque no use la palabra "vacaciones".</p>
     </div>
     <div class="card">
-      <h3>Clasificación zero-shot</h3>
-      <p style="font-size:clamp(.85rem,1.4vw,1.1rem)">Embedding de cada etiqueta (<code>URGENTE</code>, <code>SOLICITUD</code>, <code>SPAM</code>) y del correo: gana la <b>más cercana</b>. Sin entrenar nada.</p>
+      <h3>🎧 Atención al cliente</h3>
+      <p class="small"><b>"No me llegó el pedido"</b> y <b>"mi compra todavía no arribó"</b> se reconocen como el mismo reclamo. Se agrupan y se responden juntos, con la respuesta que ya funcionó antes.</p>
+    </div>
+    <div class="card">
+      <h3>📥 Ordenar correos y tickets</h3>
+      <p class="small">Cada mensaje que entra se manda solo a <b>Facturación</b>, <b>Soporte</b> o <b>Ventas</b>, según a qué área se parezca más, sin que nadie lo lea primero.</p>
+    </div>
+    <div class="card">
+      <h3>🛒 Productos parecidos</h3>
+      <p class="small">Un cliente busca <b>"zapatillas para correr"</b> en la tienda online y también le aparecen las publicadas como <b>"calzado running"</b>. O le sugerís productos similares al que está mirando.</p>
     </div>
   </div>
 </section>
 
-<!-- 12 -->
+<!-- 14 · Errores comunes -->
 <section class="slide">
   <h2>Errores comunes con embeddings</h2>
-  <table>
-    <tr><th>Error</th><th>Por qué es un problema</th></tr>
-    <tr><td>"Comprensión total"</td><td>Capturan correlaciones estadísticas, no lógica: <b>"Hay stock"</b> y <b>"No hay stock"</b> pueden quedar cerca.</td></tr>
-    <tr><td>Ignorar tokens</td><td>Cada modelo tiene una ventana de contexto. Un PDF de 100 páginas se <b>trunca</b> o pierde precisión ⇒ <b>Chunking</b>.</td></tr>
-    <tr><td>Mezclar modelos</td><td><b>NUNCA</b> compares un embedding de OpenAI con uno de HuggingFace: viven en <b>espacios distintos</b>.</td></tr>
-    <tr><td>Domain shift</td><td>Un modelo general puede fallar con lenguaje médico o código muy técnico.</td></tr>
+  <table class="plain">
+    <tr><th>Error</th><th>Qué pasa</th></tr>
+    <tr><td>Creer que "entiende" todo</td><td>Detecta parecidos, no razona. <b>"Hay stock"</b> y <b>"No hay stock"</b> pueden quedar cerca porque los dos hablan de stock.</td></tr>
+    <tr><td>Mandar textos enormes</td><td>Cada modelo lee hasta cierto largo. Un PDF de 100 páginas se corta o pierde detalle. Para eso existe el <b>chunking</b>.</td></tr>
+    <tr><td>Mezclar modelos</td><td>Los números de un modelo <b>no se pueden comparar</b> con los de otro: es como mezclar coordenadas de dos mapas distintos.</td></tr>
+    <tr><td>Temas muy especializados</td><td>Un modelo entrenado con textos generales puede fallar con lenguaje médico o código muy técnico.</td></tr>
   </table>
 </section>
 
-<!-- 13 -->
+<!-- 15 · Resumen embeddings -->
 <section class="slide">
-  <h2>Síntesis: embeddings</h2>
+  <h2>En resumen: embeddings</h2>
   <ul>
-    <li>Los embeddings son la <b>traducción del lenguaje a coordenadas</b> numéricas.</li>
+    <li>Un embedding <b>convierte el significado de un texto en números</b>.</li>
+    <li>Textos parecidos → números parecidos → <b>puntos cercanos</b>.</li>
     <li>La <b>similitud coseno</b> mide qué tan cerca están dos ideas.</li>
-    <li>Son la base de la <b>"memoria a largo plazo"</b> de cualquier sistema de IA moderno.</li>
-    <li>En RAG, son el <b>motor que busca</b> la información relevante.</li>
+    <li>En un sistema RAG, es lo que permite <b>encontrar la información relevante</b>.</li>
   </ul>
-  <p class="note">Pero antes de buscar en miles de documentos, hay que <b>"trocearlos"</b> de forma inteligente. Siguiente tema: <b>Chunking</b>.</p>
+  <p class="note">Pero no conviene convertir un documento entero en una sola lista de números: primero hay que <b>cortarlo en pedazos</b>. Eso es el <b>chunking</b>.</p>
 </section>
 
-<!-- 14 -->
+<!-- 16 · Por qué cortar -->
 <section class="slide">
   <span class="tag" style="align-self:flex-start">Chunking</span>
-  <h2>¿Por qué necesitamos fragmentar?</h2>
-  <p>En RAG, la calidad de la respuesta depende fundamentalmente de la <b>calidad de lo que recuperamos</b>.</p>
+  <h2>¿Por qué cortar los documentos en pedazos?</h2>
+  <p><b>Chunk</b> significa "pedazo". <b>Chunking</b> es cortar un documento largo en pedazos más chicos, cada uno con su propio embedding.</p>
   <div class="grid">
     <div class="card bad">
-      <span class="tag bad">1 PDF = 1 vector</span>
-      <p>Un PDF de 50 páginas en un solo vector es un <b>promedio semántico diluido</b>: pierde matices y no sirve para respuestas específicas.</p>
+      <span class="tag bad">todo junto</span>
+      <p class="small">Un PDF de 50 páginas en un solo embedding es como <b>resumir un libro en una frase</b>: se pierden los detalles. Además, cada modelo tiene un límite de texto que puede leer de una vez.</p>
     </div>
     <div class="card ok">
-      <span class="tag ok">chunks</span>
-      <p>Unidades de información <b>atómicas</b> y <b>semánticamente coherentes</b>: cada una responde bien a preguntas puntuales.</p>
+      <span class="tag ok">en pedazos</span>
+      <p class="small">Cada pedazo trata <b>una idea</b>, completa y entendible. Así la búsqueda encuentra justo el párrafo que responde la pregunta.</p>
     </div>
   </div>
   <div class="flow">
     <div class="node">Documento</div><span class="arrow">→</span>
-    <div class="node">Limpieza</div><span class="arrow">→</span>
-    <div class="node m">Chunking</div><span class="arrow">→</span>
-    <div class="node">Embeddings</div><span class="arrow">→</span>
-    <div class="node o">Base vectorial</div>
+    <div class="node">1. Limpiar</div><span class="arrow">→</span>
+    <div class="node m">2. Cortar</div><span class="arrow">→</span>
+    <div class="node">3. Pasar a números</div><span class="arrow">→</span>
+    <div class="node o">4. Guardar</div>
   </div>
 </section>
 
-<!-- 15 -->
+<!-- 17 · Limpiar -->
 <section class="slide">
-  <h2>1. Limpieza (preprocessing)</h2>
-  <p>Antes de dividir, hay que limpiar. Los PDFs y HTMLs reales traen ruido:</p>
+  <h2>Paso 1: limpiar el texto</h2>
+  <p>Los documentos reales, sobre todo los PDF, traen "basura" que no es parte del contenido:</p>
   <div class="grid">
-    <div class="card">
-      <ul>
-        <li>Encabezados y pies de página <b>repetidos</b></li>
-        <li>Saltos de línea dobles o triples</li>
-      </ul>
-    </div>
-    <div class="card">
-      <ul>
-        <li>Caracteres raros por mala extracción de tablas (<code>■</code>)</li>
-        <li>Rutas de archivos o metadatos basura</li>
-      </ul>
-    </div>
+    <div class="card"><ul><li>Encabezados y pies de página que se <b>repiten en cada página</b></li><li>Líneas en blanco de más</li></ul></div>
+    <div class="card"><ul><li>Símbolos raros que quedan al copiar tablas (<code>■</code>)</li><li>Rutas de archivos u otros datos que no aportan</li></ul></div>
   </div>
-  <p class="note"><b>Por qué importa:</b> si un chunk tiene un pie de página en medio de una frase importante, el embedding <b>captura ese ruido</b> y la similitud semántica empeora.</p>
+  <p class="note"><b>¿Por qué importa?</b> Si un pedazo tiene un pie de página metido en medio de una frase, sus números quedan "contaminados" y la búsqueda funciona peor. <b>Si entra basura, sale basura.</b></p>
 </section>
 
-<!-- 16 -->
+<!-- 18 · Cortar -->
 <section class="slide">
-  <h2>2. Estrategias de chunking</h2>
+  <h2>Paso 2: cortar en el lugar correcto</h2>
   <div class="grid">
     <div class="card bad">
-      <span class="tag bad">simple pero peligroso</span>
-      <h3>Fixed-size</h3>
-      <p>Corta cada X caracteres o tokens. Puede partir una oración o un concepto <b>por la mitad</b>.</p>
+      <span class="tag bad">simple pero riesgoso</span>
+      <h3>Tamaño fijo</h3>
+      <p class="small">Como cortar un texto con tijera cada 10 cm: es fácil, pero puede <b>partir una oración por la mitad</b>.</p>
     </div>
     <div class="card ok">
-      <span class="tag ok">estándar de industria</span>
-      <h3>Recursive Character Splitting</h3>
-      <p>El enfoque de LangChain: prueba una <b>jerarquía de separadores</b>, del más grande al más chico.</p>
+      <span class="tag ok">el más usado</span>
+      <h3>Corte "recursivo"</h3>
+      <p class="small">Corta donde el texto <b>ya tiene una pausa natural</b>. Si el pedazo sigue siendo muy grande, prueba con una pausa más chica.</p>
     </div>
   </div>
   <div class="flow">
-    <div class="node o">Párrafos<small>\n\n</small></div><span class="arrow">→</span>
-    <div class="node m">Líneas<small>\n</small></div><span class="arrow">→</span>
-    <div class="node">Espacios<small>" "</small></div><span class="arrow">→</span>
-    <div class="node">Caracteres<small>último recurso</small></div>
+    <div class="node o">Entre párrafos<small>línea en blanco (\n\n)</small></div><span class="arrow">→</span>
+    <div class="node m">Entre líneas<small>salto de línea (\n)</small></div><span class="arrow">→</span>
+    <div class="node">Entre palabras<small>espacio</small></div><span class="arrow">→</span>
+    <div class="node">Entre letras<small>último recurso</small></div>
   </div>
-  <p>Así, en la medida de lo posible, <b>párrafos y oraciones se mantienen unidos</b>.</p>
+  <p>Así, siempre que se puede, <b>párrafos y oraciones quedan enteros</b>. En LangChain esta herramienta se llama <code>RecursiveCharacterTextSplitter</code>.</p>
 </section>
 
-<!-- 17 -->
+<!-- 19 · Overlap -->
 <section class="slide">
-  <h2>3. Overlap (solapamiento)</h2>
-  <p>El final del <b>Chunk 1</b> se repite al inicio del <b>Chunk 2</b>.</p>
+  <h2>Paso 3: dejar un poco de repetición (overlap)</h2>
+  <p><b>Overlap</b> significa "solapamiento": el final de un pedazo se repite al principio del siguiente.</p>
   <div class="flow">
-    <div class="node">Chunk 1<small>... la garantía cubre 12 meses</small></div>
+    <div class="node">Pedazo 1<small>"...dentro de los 30 días corridos desde la compra, siempre que conserven el"</small></div>
     <span class="arrow">⇄</span>
-    <div class="node m">overlap<small>cubre 12 meses</small></div>
+    <div class="node m">Se repite<small>"desde la compra, siempre que conserven el"</small></div>
     <span class="arrow">⇄</span>
-    <div class="node o">Chunk 2<small>cubre 12 meses, salvo golpes ...</small></div>
+    <div class="node o">Pedazo 2<small>"desde la compra, siempre que conserven el ticket."</small></div>
   </div>
-  <p class="note"><b>Motivación:</b> si un concepto clave cae justo en el límite entre dos fragmentos, el overlap preserva el contexto en ambos. Se recupera sin importar <b>dónde se cortó</b> el "papel virtual".</p>
+  <p class="note"><b>¿Para qué?</b> Si una idea importante cae justo donde se corta, el overlap hace que aparezca <b>completa en al menos un pedazo</b>. Es como cuando un capítulo de una serie arranca con "en el capítulo anterior...".</p>
 </section>
 
-<!-- 18 -->
+<!-- 20 · Tokens, errores y equilibrio -->
 <section class="slide">
-  <h2>Errores comunes y síntesis</h2>
+  <h2>Tokens, errores comunes y el equilibrio</h2>
+  <p class="note"><b>Token:</b> la unidad en la que un modelo lee el texto (y en la que cobra). Una palabra común suele ser un token; una palabra larga o rara puede partirse en varios. Por eso <b>medimos los pedazos en tokens, no en letras</b>.</p>
   <div class="grid">
     <div class="card bad">
       <span class="tag bad">errores</span>
-      <ul>
-        <li><b>Chunks muy chicos:</b> ruido y sin contexto global.</li>
-        <li><b>Medir en caracteres:</b> los modelos cobran y limitan por <b>tokens</b>. Validá con <code>tiktoken</code>.</li>
-        <li><b>No limpiar:</b> basura entra, basura sale.</li>
+      <ul class="small">
+        <li><b>Pedazos muy chicos:</b> pierden el contexto y no se entienden solos.</li>
+        <li><b>Medir en letras:</b> el modelo cuenta tokens. Usá un contador real, como <code>tiktoken</code>.</li>
+        <li><b>No limpiar:</b> la basura empeora la búsqueda.</li>
       </ul>
     </div>
     <div class="card ok">
-      <span class="tag ok">un buen chunking equilibra</span>
-      <ul>
-        <li><b>Granularidad:</b> fragmentos chicos para precisión.</li>
-        <li><b>Contexto:</b> lo bastante grandes (o con overlap) para entenderse.</li>
-        <li><b>Limpieza:</b> datos normalizados.</li>
+      <span class="tag ok">un buen corte equilibra</span>
+      <ul class="small">
+        <li><b>Precisión:</b> pedazos chicos y enfocados.</li>
+        <li><b>Contexto:</b> lo bastante grandes (o con overlap) para entenderse solos.</li>
+        <li><b>Limpieza:</b> texto prolijo antes de cortar.</li>
       </ul>
     </div>
   </div>
 </section>
 
-<!-- 19 -->
+<!-- 21 · Ejercicio 1: consigna -->
 <section class="slide">
   <h2>Ejercicio 1: qué tenés que hacer</h2>
-  <p><b>Objetivo:</b> armar un pipeline que limpie un documento y lo divida en fragmentos medidos en <b>tokens</b>, con solapamiento.</p>
-  <table>
-    <tr><th>Método</th><th>Qué hacer</th></tr>
-    <tr><td>__init__</td><td><code>tiktoken.get_encoding(model_encoding)</code> + <code>RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50, length_function=self.calculate_tokens, separators=["\n\n", "\n", ". ", " ", ""])</code></td></tr>
-    <tr><td>clean_text</td><td>Con <code>re.sub</code>: (a) borrá encabezados repetidos, (b) máximo un <code>\n\n</code> entre párrafos, (c) espacios múltiples → uno, (d) eliminá <code>■</code>.</td></tr>
-    <tr><td>calculate_tokens</td><td><code>return len(self.tokenizer.encode(text))</code></td></tr>
-    <tr><td>process_document</td><td>Limpiá, <code>self.splitter.split_text(...)</code>, imprimí los tokens de cada chunk y devolvé la lista.</td></tr>
+  <p><b>Objetivo:</b> un programa que <b>limpie</b> un documento y lo <b>corte en pedazos</b> medidos en tokens, con un poco de repetición entre ellos.</p>
+  <table class="plain">
+    <tr><th>Parte</th><th>Qué tiene que hacer</th></tr>
+    <tr><td>__init__</td><td>Preparar las herramientas: el contador de tokens <code>tiktoken.get_encoding(model_encoding)</code> y la "tijera" <code>RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50, length_function=self.calculate_tokens, separators=["\n\n", "\n", ". ", " ", ""])</code>.</td></tr>
+    <tr><td>clean_text</td><td>Limpiar con <code>re.sub</code>: (a) borrar el encabezado que se repite en cada página, (b) dejar como máximo una línea en blanco entre párrafos, (c) cambiar varios espacios seguidos por uno, (d) borrar símbolos como <code>■</code>.</td></tr>
+    <tr><td>calculate_tokens</td><td>Contar los tokens de un texto: <code>return len(self.tokenizer.encode(text))</code>.</td></tr>
+    <tr><td>process_document</td><td>Unir todo: limpiar → cortar con <code>self.splitter.split_text(...)</code> → mostrar cuántos tokens tiene cada pedazo → devolver la lista.</td></tr>
   </table>
-  <p class="note">No borres <b>todos</b> los saltos de línea: el splitter los usa para cortar por párrafo.</p>
+  <p class="note">No borres <b>todos</b> los saltos de línea: la "tijera" los usa para saber dónde termina cada párrafo.</p>
 </section>
 
-<!-- 20 -->
+<!-- 22 · Ejercicio 1: texto de prueba -->
 <section class="slide">
-  <h2>Ejercicio 1: input de prueba</h2>
-  <p>Reemplazá <code>text = "Tu texto largo aquí..."</code> por este texto, con el ruido típico de un PDF convertido:</p>
-<pre>text = <span class="s">"""ACME S.A. — Manual interno — Pág. 1
+  <h2>Ejercicio 1: texto de prueba</h2>
+  <p>Reemplazá <code>text = "Tu texto largo aquí..."</code> por este texto. Imita un PDF convertido y trae basura <b>a propósito</b>: encabezados repetidos, <code>■</code>, espacios de más y líneas en blanco extra.</p>
+<pre style="white-space:pre-wrap">text = <span class="s">"""ACME S.A. — Manual interno — Pág. 1
 
 Política de devoluciones■■
 Los clientes pueden devolver un producto dentro de los 30 días    corridos desde la compra, siempre que conserven el ticket.
@@ -539,192 +635,290 @@ Los envíos dentro de la ciudad demoran 48 horas hábiles. Para el interior del 
 ACME S.A. — Manual interno — Pág. 3
 Garantía
 Todos los productos electrónicos tienen 12 meses de garantía. La garantía no cubre daños por mal uso ni golpes."""</span></pre>
+  <p>El texto es corto: para ver los cortes, probá con pedazos chicos (<code>40 / 10</code> y <code>25 / 10</code>) y después volvé a <code>500 / 50</code>.</p>
 </section>
 
-<!-- 21 -->
+<!-- 23 · Ejercicio 1: qué deberías ver -->
 <section class="slide">
-  <h2>Ejercicio 1: salida esperada</h2>
-  <p>El texto es corto: para ver el corte, probá primero con <code>chunk_size=40</code> y <code>chunk_overlap=10</code>, y después volvé a <code>500 / 50</code>.</p>
-  <ul>
-    <li>Varios chunks (<b>entre 4 y 8</b>), ninguno de más de <b>40 tokens</b>.</li>
-    <li>Ningún chunk contiene <code>ACME S.A. — Manual interno</code> ni <code>■</code>.</li>
-    <li>Cuando un párrafo no entra entero, sus <b>últimas palabras se repiten</b> al comienzo del siguiente: ese es el <b>overlap</b>.</li>
-  </ul>
-<pre>Chunk 1: 31 tokens
-Chunk 2: 38 tokens
-...
-Chunks generados: 6</pre>
-</section>
-
-<!-- 22 -->
-<section class="slide scroll">
-  <h2>Ejercicio 1: código base</h2>
-  <div class="grid" style="grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);align-items:stretch">
-    <div class="card" style="padding:1vh .8vw"><span class="tag">Plantilla · Ejercicio 1</span>
-<pre><span class="k">import</span> re
-<span class="k">import</span> tiktoken
-<span class="k">from</span> typing <span class="k">import</span> List
-<span class="k">from</span> langchain_text_splitters <span class="k">import</span> RecursiveCharacterTextSplitter
-
-<span class="k">class</span> <span class="f">DocumentProcessor</span>:
-    <span class="k">def</span> <span class="f">__init__</span>(self, model_encoding: str = <span class="s">"cl100k_base"</span>):
-        <span class="c"># TODO: Inicializar el encoding de tiktoken</span>
-        self.tokenizer = <span class="k">None</span>
-
-        <span class="c"># TODO: Configurar RecursiveCharacterTextSplitter</span>
-        <span class="c"># Debe usar una función personalizada para medir longitud por TOKENS, no caracteres.</span>
-        self.splitter = <span class="k">None</span>
-
-    <span class="k">def</span> <span class="f">clean_text</span>(self, text: str) -> str:
-        <span class="s">"""Limpia el texto eliminando espacios duplicados y saltos de línea innecesarios."""</span>
-        <span class="c"># IMPLEMENTA AQUÍ: Usa regex para limpiar el texto</span>
-        <span class="k">return</span> text
-
-    <span class="k">def</span> <span class="f">calculate_tokens</span>(self, text: str) -> int:
-        <span class="s">"""Calcula la cantidad de tokens usando el tokenizer de tiktoken."""</span>
-        <span class="c"># IMPLEMENTA AQUÍ</span>
-        <span class="k">return</span> 0
-
-    <span class="k">def</span> <span class="f">process_document</span>(self, raw_text: str) -> List[str]:
-        <span class="s">"""Pipeline: Limpieza -> Fragmentación."""</span>
-        <span class="c"># TODO: 1. Limpiar el texto</span>
-        <span class="c"># TODO: 2. Aplicar el splitter</span>
-        <span class="c"># TODO: 3. Retornar los chunks procesados</span>
-        <span class="k">return</span> []
-
-<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
-    text = <span class="s">"Tu texto largo aquí..."</span>
-    processor = DocumentProcessor()
-    chunks = processor.process_document(text)
-    <span class="f">print</span>(f<span class="s">"Chunks generados: {len(chunks)}"</span>)</pre>
+  <h2>Ejercicio 1: qué deberías ver</h2>
+  <div class="grid">
+    <div class="card ok">
+      <span class="tag ok">con chunk_size=40, chunk_overlap=10</span>
+<pre>Chunk 1: 33 tokens   <span class="c">Política de devoluciones...</span>
+Chunk 2: 32 tokens   <span class="c">El reintegro se hace...</span>
+Chunk 3: 16 tokens   <span class="c">Los envíos dentro de la ciudad...</span>
+Chunk 4: 32 tokens   <span class="c">. Para el interior del país...</span>
+Chunk 5: 33 tokens   <span class="c">Garantía\nTodos los productos...</span>
+Chunks generados: 5</pre>
+      <p class="small">Ninguno pasa de 40 tokens y no queda ni <code>ACME S.A. — Manual interno</code> ni <code>■</code>.</p>
+    </div>
+    <div class="card">
+      <span class="tag">con 25 / 10 se ve el overlap</span>
+<pre>Chunk 2: <span class="s">'... desde la compra, siempre
+          que conserven el'</span>
+Chunk 3: <span class="s">'desde la compra, siempre que
+          conserven el ticket.'</span></pre>
+      <p class="small">El final del pedazo 2 se repite al principio del 3.</p>
     </div>
   </div>
+  <ul class="small">
+    <li><b>¿Por qué con 40 / 10 no se repite nada?</b> El overlap solo repite <b>partes completas</b> que entren en 10 tokens. Con 40, los cortes caen entre oraciones enteras, y una oración no entra en 10 tokens.</li>
+    <li>Es normal que un pedazo empiece con <code>". "</code>: LangChain deja el separador al principio del pedazo siguiente.</li>
+    <li>Con <code>500 / 50</code> sale <b>un solo pedazo</b> de 147 tokens: el texto entero entra.</li>
+  </ul>
 </section>
 
-<!-- 23 -->
+<!-- 24 · Ejercicio 1: solución completa -->
 <section class="slide scroll">
-  <h2>Ejercicio 1: solución</h2>
+  <h2>Ejercicio 1: solución completa y comentada</h2>
   <div class="grid" style="grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);align-items:stretch">
-    <div class="card" style="padding:1vh .8vw"><span class="tag">Código completo · Ejercicio 1</span>
-<pre><span class="k">import</span> re
-<span class="k">import</span> tiktoken
-<span class="k">from</span> typing <span class="k">import</span> List
+    <div class="card" style="padding:1vh .8vw"><span class="tag">Código completo · copiá, pegá y corré · probado con el texto ACME</span>
+<pre><span class="c"># =====================================================================</span>
+<span class="c"># EJERCICIO 1: limpiar un documento y cortarlo en pedazos ("chunks")</span>
+<span class="c"># =====================================================================</span>
+<span class="c"># Qué hace este programa, en tres pasos:</span>
+<span class="c">#   1. LIMPIA el texto: le saca la "basura" típica de un PDF convertido.</span>
+<span class="c">#   2. CORTA el texto en pedazos que no pasen de cierto tamaño.</span>
+<span class="c">#   3. MUESTRA cada pedazo y cuántos tokens tiene.</span>
+<span class="c">#</span>
+<span class="c"># Antes de correrlo, instalá las dos librerías que usa (una sola vez),</span>
+<span class="c"># escribiendo esto en la terminal:</span>
+<span class="c">#     pip install tiktoken langchain-text-splitters</span>
+<span class="c"># La primera vez que corre, tiktoken descarga su vocabulario: necesita internet.</span>
+<span class="c"># =====================================================================</span>
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># IMPORTS: traemos herramientas que ya existen, para no programarlas de cero</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">import</span> re                 <span class="c"># "re" = expresiones regulares: patrones para buscar y</span>
+                          <span class="c"># reemplazar texto (ej.: "cualquier línea que diga Pág. 1")</span>
+<span class="k">from</span> typing <span class="k">import</span> List   <span class="c"># solo sirve para anotar que una función devuelve una lista</span>
+
+<span class="k">import</span> tiktoken           <span class="c"># cuenta TOKENS igual que los modelos de OpenAI.</span>
+                          <span class="c"># Token = el pedacito de texto en el que el modelo lee</span>
+                          <span class="c"># (una palabra común suele ser 1 token; una larga, varios)</span>
 <span class="k">from</span> langchain_text_splitters <span class="k">import</span> RecursiveCharacterTextSplitter
+                          <span class="c"># la "tijera" de LangChain: corta el texto respetando</span>
+                          <span class="c"># párrafos y oraciones siempre que puede</span>
 
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># LA CLASE: agrupa en un solo lugar las herramientas y los pasos del proceso</span>
+<span class="c"># ---------------------------------------------------------------------</span>
 <span class="k">class</span> <span class="f">DocumentProcessor</span>:
-    <span class="k">def</span> <span class="f">__init__</span>(self, model_encoding: str = <span class="s">"cl100k_base"</span>,
-                 chunk_size: int = <span class="w">500</span>, chunk_overlap: int = <span class="w">50</span>):
-        <span class="c"># Tokenizer real: medimos como mide (y cobra) el modelo</span>
-        self.tokenizer = tiktoken.get_encoding(model_encoding)
 
-        <span class="c"># length_function: el splitter cuenta TOKENS, no caracteres</span>
-        self.splitter = RecursiveCharacterTextSplitter(
+    <span class="c"># __init__ se ejecuta UNA VEZ, al crear el procesador.</span>
+    <span class="c"># Acá preparamos las herramientas que después vamos a reutilizar.</span>
+    <span class="c">#   - model_encoding: qué vocabulario de tokens usar ("cl100k_base" es el de</span>
+    <span class="c">#     los modelos actuales de OpenAI)</span>
+    <span class="c">#   - chunk_size: tamaño MÁXIMO de cada pedazo, medido en tokens</span>
+    <span class="c">#   - chunk_overlap: cuántos tokens del final de un pedazo pueden repetirse</span>
+    <span class="c">#     al principio del siguiente (el "solapamiento")</span>
+    <span class="c"># "self" es el propio procesador: lo que guardamos en self.algo queda</span>
+    <span class="c"># disponible para las demás funciones de la clase.</span>
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>, model_encoding: <span class="f">str</span> = <span class="s">"</span><span class="s">cl100k_base</span><span class="s">"</span>,
+                 chunk_size: <span class="f">int</span> = <span class="w">500</span>, chunk_overlap: <span class="f">int</span> = <span class="w">50</span>):
+
+        <span class="c"># Herramienta 1: el contador de tokens</span>
+        <span class="k">self</span>.tokenizer = tiktoken.get_encoding(model_encoding)
+
+        <span class="c"># Herramienta 2: la tijera.</span>
+        <span class="c"># "separators" es la lista de lugares donde intenta cortar, EN ORDEN:</span>
+        <span class="c">#   "\n\n" -&gt; entre párrafos (línea en blanco)</span>
+        <span class="c">#   "\n"   -&gt; entre líneas</span>
+        <span class="c">#   ". "   -&gt; entre oraciones</span>
+        <span class="c">#   " "    -&gt; entre palabras</span>
+        <span class="c">#   ""     -&gt; entre letras (último recurso, si nada más alcanza)</span>
+        <span class="c"># Si un pedazo sigue siendo demasiado grande, pasa al separador siguiente.</span>
+        <span class="k">self</span>.splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            length_function=self.calculate_tokens,
-            separators=[<span class="s">"\n\n"</span>, <span class="s">"\n"</span>, <span class="s">". "</span>, <span class="s">" "</span>, <span class="s">""</span>])
+            <span class="c"># Clave: le decimos a la tijera que mida con NUESTRA función,</span>
+            <span class="c"># que cuenta tokens. Si no, mediría en letras (caracteres).</span>
+            length_function=<span class="k">self</span>.calculate_tokens,
+            separators=[<span class="s">"</span><span class="s">\n</span><span class="s">\n</span><span class="s">"</span>, <span class="s">"</span><span class="s">\n</span><span class="s">"</span>, <span class="s">"</span><span class="s">. </span><span class="s">"</span>, <span class="s">"</span> <span class="s">"</span>, <span class="s">"</span><span class="s">"</span>])
 
-    <span class="k">def</span> <span class="f">clean_text</span>(self, text: str) -> str:
-        <span class="c"># (a) Encabezados repetidos de cada página</span>
-        text = re.sub(<span class="s">r"^.*Manual interno.*Pág\.\s*\d+.*$"</span>, <span class="s">""</span>,
-                      text, flags=re.MULTILINE)
-        <span class="c"># (d) Caracteres basura de la extracción</span>
-        text = re.sub(<span class="s">r"[■□▪●]"</span>, <span class="s">""</span>, text)
-        <span class="c"># (c) Espacios/tabs múltiples → uno solo</span>
-        text = re.sub(<span class="s">r"[ \t]+"</span>, <span class="s">" "</span>, text)
-        <span class="c"># Quitar espacios pegados a los saltos de línea</span>
-        text = re.sub(<span class="s">r" *\n *"</span>, <span class="s">"\n"</span>, text)
-        <span class="c"># (b) Máximo un salto doble entre párrafos</span>
-        text = re.sub(<span class="s">r"\n{3,}"</span>, <span class="s">"\n\n"</span>, text)
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="c"># PASO 1: limpiar el texto</span>
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="k">def</span> <span class="f">clean_text</span>(<span class="k">self</span>, text: <span class="f">str</span>) -&gt; <span class="f">str</span>:
+        <span class="s">"""Saca la "basura" típica de un PDF convertido a texto."""</span>
+
+        <span class="c"># re.sub(patrón, reemplazo, texto) busca el patrón y lo reemplaza.</span>
+
+        <span class="c"># (a) Borrar el encabezado que se repite en cada página.</span>
+        <span class="c">#     El patrón significa: "una línea completa (^ ... $) que contenga</span>
+        <span class="c">#     'Manual interno' y después 'Pág.' seguido de un número (\d+)".</span>
+        <span class="c">#     re.MULTILINE hace que ^ y $ signifiquen inicio y fin de CADA línea.</span>
+        text = re.sub(<span class="s">r</span><span class="s">"</span><span class="s">^.*Manual interno.*Pág</span><span class="s">\</span><span class="s">.</span><span class="s">\</span><span class="s">s*</span><span class="s">\</span><span class="s">d+.*$</span><span class="s">"</span>, <span class="s">"</span><span class="s">"</span>, text, flags=re.MULTILINE)
+
+        <span class="c"># (d) Borrar símbolos raros que deja la conversión del PDF.</span>
+        <span class="c">#     Los corchetes [ ] significan "cualquiera de estos caracteres".</span>
+        text = re.sub(<span class="s">r</span><span class="s">"</span><span class="s">[■□▪●]</span><span class="s">"</span>, <span class="s">"</span><span class="s">"</span>, text)
+
+        <span class="c"># (c) Varios espacios o tabulaciones seguidos -&gt; un solo espacio.</span>
+        <span class="c">#     [ \t]+ significa "uno o más espacios o tabs".</span>
+        text = re.sub(<span class="s">r</span><span class="s">"</span><span class="s">[ </span><span class="s">\</span><span class="s">t]+</span><span class="s">"</span>, <span class="s">"</span> <span class="s">"</span>, text)
+
+        <span class="c"># Quitar los espacios que quedan pegados antes o después de un salto de línea.</span>
+        text = re.sub(<span class="s">r</span><span class="s">"</span><span class="s"> *</span><span class="s">\</span><span class="s">n *</span><span class="s">"</span>, <span class="s">"</span><span class="s">\n</span><span class="s">"</span>, text)
+
+        <span class="c"># (b) Tres o más saltos de línea seguidos -&gt; dos (una sola línea en blanco).</span>
+        <span class="c">#     OJO: no borramos TODOS los saltos, porque la tijera los usa para</span>
+        <span class="c">#     saber dónde termina cada párrafo.</span>
+        text = re.sub(<span class="s">r</span><span class="s">"</span><span class="s">\</span><span class="s">n</span><span class="s">{</span><span class="s">3,}</span><span class="s">"</span>, <span class="s">"</span><span class="s">\n</span><span class="s">\n</span><span class="s">"</span>, text)
+
+        <span class="c"># strip() borra espacios y saltos sobrantes al principio y al final.</span>
         <span class="k">return</span> text.strip()
 
-    <span class="k">def</span> <span class="f">calculate_tokens</span>(self, text: str) -> int:
-        <span class="k">return</span> len(self.tokenizer.encode(text))
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="c"># Contar tokens (la usa la tijera para medir cada pedazo)</span>
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="k">def</span> <span class="f">calculate_tokens</span>(<span class="k">self</span>, text: <span class="f">str</span>) -&gt; <span class="f">int</span>:
+        <span class="s">"""Cuenta cuántos tokens tiene un texto."""</span>
+        <span class="c"># encode() convierte el texto en una lista de números (un número por token).</span>
+        <span class="c"># len() cuenta cuántos elementos tiene esa lista = cantidad de tokens.</span>
+        <span class="k">return</span> <span class="f">len</span>(<span class="k">self</span>.tokenizer.encode(text))
 
-    <span class="k">def</span> <span class="f">process_document</span>(self, raw_text: str) -> List[str]:
-        clean = self.clean_text(raw_text)            <span class="c"># 1. Limpieza</span>
-        chunks = self.splitter.split_text(clean)     <span class="c"># 2. Fragmentación</span>
-        <span class="k">for</span> i, c <span class="k">in</span> enumerate(chunks, 1):
-            <span class="f">print</span>(f<span class="s">"Chunk {i}: {self.calculate_tokens(c)} tokens"</span>)
-            <span class="f">print</span>(f<span class="s">"  {c!r}"</span>)
-        <span class="k">return</span> chunks                                 <span class="c"># 3. Retorno</span>
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="c"># PASOS 1 a 3 juntos: el proceso completo</span>
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="k">def</span> <span class="f">process_document</span>(<span class="k">self</span>, raw_text: <span class="f">str</span>) -&gt; List[<span class="f">str</span>]:
+        <span class="s">"""Limpia, corta, muestra cada pedazo y devuelve la lista de pedazos."""</span>
 
-<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
-    text = <span class="s">"""...texto ACME de la diapositiva anterior..."""</span>
-    <span class="c"># Primero 40 / 10 para ver el corte; después 500 / 50</span>
-    processor = DocumentProcessor(chunk_size=<span class="w">40</span>, chunk_overlap=<span class="w">10</span>)
-    chunks = processor.process_document(text)
-    <span class="f">print</span>(f<span class="s">"Chunks generados: {len(chunks)}"</span>)</pre>
+        <span class="c"># 1. Limpiar</span>
+        clean = <span class="k">self</span>.clean_text(raw_text)
+
+        <span class="c"># 2. Cortar: split_text devuelve una lista de textos (los pedazos)</span>
+        chunks = <span class="k">self</span>.splitter.split_text(clean)
+
+        <span class="c"># 3. Mostrar cada pedazo.</span>
+        <span class="c">#    enumerate(chunks, 1) recorre la lista y además nos da el número</span>
+        <span class="c">#    de cada pedazo, empezando a contar desde 1.</span>
+        <span class="k">for</span> i, chunk in <span class="f">enumerate</span>(chunks, <span class="w">1</span>):
+            <span class="c"># Las f-strings (f"...") permiten meter valores entre { } dentro del texto.</span>
+            <span class="f">print</span>(<span class="s">f</span><span class="s">"</span><span class="s">Chunk </span><span class="s">{</span>i<span class="s">}</span><span class="s">: </span><span class="s">{</span><span class="k">self</span>.calculate_tokens(chunk)<span class="s">}</span><span class="s"> tokens</span><span class="s">"</span>)
+            <span class="c"># !r muestra el texto "crudo", entre comillas y con los saltos de</span>
+            <span class="c"># línea visibles como \n: así se ve exactamente dónde cortó.</span>
+            <span class="f">print</span>(<span class="s">f</span><span class="s">"</span>   <span class="s">{</span>chunk<span class="s">!r}</span><span class="s">"</span>)
+
+        <span class="c"># 4. Devolver la lista, por si otra parte del programa la necesita</span>
+        <span class="c">#    (por ejemplo, para guardarla después en ChromaDB)</span>
+        <span class="k">return</span> chunks
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># TEXTO DE PRUEBA: imita un PDF convertido, con basura a propósito</span>
+<span class="c"># (encabezados repetidos, ■, espacios de más y líneas en blanco extra).</span>
+<span class="c"># Las tres comillas """ permiten escribir un texto de varias líneas.</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+text = <span class="s">"""</span><span class="s">ACME S.A. — Manual interno — Pág. 1</span>
+
+<span class="s">Política de devoluciones■■</span>
+<span class="s">Los clientes pueden devolver un producto dentro de los 30 días    corridos desde la compra, siempre que conserven el ticket.</span>
+
+
+<span class="s">ACME S.A. — Manual interno — Pág. 2</span>
+<span class="s">El reintegro se hace por el mismo medio de pago. Si la compra fue en efectivo, se entrega una nota de crédito.</span>
+<span class="s">Envíos</span>
+<span class="s">Los envíos dentro de la ciudad demoran 48 horas hábiles. Para el interior del país, el plazo es de 5 a 7 días hábiles y el costo depende del peso del paquete.</span>
+
+
+<span class="s">ACME S.A. — Manual interno — Pág. 3</span>
+<span class="s">Garantía</span>
+<span class="s">Todos los productos electrónicos tienen 12 meses de garantía. La garantía no cubre daños por mal uso ni golpes.</span><span class="s">"""</span>
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># PROGRAMA PRINCIPAL: lo que se ejecuta al correr el archivo</span>
+<span class="c"># (este "if" evita que se ejecute si el archivo se importa desde otro programa)</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">if</span> __name__ == <span class="s">"</span><span class="s">__main__</span><span class="s">"</span>:
+    <span class="c"># Probamos tres tamaños distintos para ver qué cambia:</span>
+    <span class="c">#   40 / 10  -&gt; se ven los cortes: 5 pedazos</span>
+    <span class="c">#   25 / 10  -&gt; además se ve el overlap: el final de un pedazo se repite</span>
+    <span class="c">#               al principio del siguiente</span>
+    <span class="c">#   500 / 50 -&gt; el valor real de la entrega: este texto es corto y entra</span>
+    <span class="c">#               entero en un solo pedazo</span>
+    <span class="k">for</span> size, overlap in [(<span class="w">40</span>, <span class="w">10</span>), (<span class="w">25</span>, <span class="w">10</span>), (<span class="w">500</span>, <span class="w">50</span>)]:
+        <span class="f">print</span>(<span class="s">f</span><span class="s">"</span><span class="s">\n</span><span class="s">===== chunk_size=</span><span class="s">{</span>size<span class="s">}</span><span class="s">, chunk_overlap=</span><span class="s">{</span>overlap<span class="s">}</span><span class="s"> =====</span><span class="s">"</span>)
+        processor = DocumentProcessor(chunk_size=size, chunk_overlap=overlap)
+        chunks = processor.process_document(text)
+        <span class="f">print</span>(<span class="s">f</span><span class="s">"</span><span class="s">Chunks generados: </span><span class="s">{</span><span class="f">len</span>(chunks)<span class="s">}</span><span class="s">"</span>)</pre>
     </div>
   </div>
 </section>
 
-<!-- 24 -->
+<!-- 26 · ChromaDB -->
 <section class="slide">
-  <span class="tag" style="align-self:flex-start">Persistencia</span>
-  <h2>¿Por qué ChromaDB local?</h2>
-  <p>Los embeddings en RAM son <b>volátiles</b>. Necesitamos que el conocimiento <b>sobreviva al reinicio</b> y se actualice sin reindexar todo.</p>
-  <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
-    <div class="card"><h3>Simple</h3><p style="font-size:clamp(.85rem,1.4vw,1.1rem)">No requiere levantar un contenedor Docker (por defecto).</p></div>
-    <div class="card"><h3>En disco</h3><p style="font-size:clamp(.85rem,1.4vw,1.1rem)">Guarda los datos en archivos dentro de una carpeta de tu elección.</p></div>
-    <div class="card"><h3>CRUD</h3><p style="font-size:clamp(.85rem,1.4vw,1.1rem)">Create, Read, Update, Delete sobre el "conocimiento" de tu agente.</p></div>
+  <span class="tag" style="align-self:flex-start">Guardar</span>
+  <h2>¿Dónde guardamos todo? ChromaDB</h2>
+  <p>Una <b>base de datos vectorial</b> guarda cada pedazo de texto <b>junto con sus números</b> (su embedding) y sabe buscar <b>por cercanía</b>. <b>ChromaDB</b> es una de las más simples de usar.</p>
+  <div class="grid">
+    <div class="card bad"><span class="tag bad">solo en memoria</span><p class="small">Como escribir en un <b>pizarrón</b>: cuando el programa se cierra, se borra todo y hay que volver a procesar los documentos.</p></div>
+    <div class="card ok"><span class="tag ok">guardado en disco</span><p class="small">Como escribir en un <b>cuaderno</b>: queda en una carpeta de tu computadora y sigue ahí la próxima vez. Se llama modo "persistente".</p></div>
   </div>
-<pre>client = chromadb.<span class="f">PersistentClient</span>(path=<span class="s">"./chroma_db"</span>)  <span class="c"># sin path = se pierde todo al cerrar</span></pre>
+<pre>client = chromadb.<span class="f">PersistentClient</span>(path=<span class="s">"./chroma_db"</span>)  <span class="c"># la carpeta donde se guarda todo</span></pre>
+  <p class="note">Funciona en tu propia computadora: no hace falta instalar ni configurar un servidor aparte.</p>
 </section>
 
-<!-- 25 -->
+<!-- 27 · CRUD -->
 <section class="slide">
-  <h2>CRUD en el espacio vectorial</h2>
+  <h2>Las operaciones básicas</h2>
+  <p>Toda base de datos permite <b>crear, leer, actualizar y borrar</b> (en inglés, <b>CRUD</b>). En ChromaDB:</p>
   <table>
-    <tr><th>Operación</th><th>Qué hace</th><th>Matiz vectorial</th></tr>
-    <tr><td>upsert()</td><td>Create / Update</td><td>Guarda texto <b>y su vector</b>. Si el ID existe, actualiza; si no, crea.</td></tr>
-    <tr><td>get()</td><td>Read exacto</td><td>Por IDs o filtros de metadatos (como un <code>SELECT</code>).</td></tr>
-    <tr><td>query()</td><td>Read semántico</td><td>Por <b>similitud</b>. Es el corazón de RAG.</td></tr>
-    <tr><td>update()</td><td>Update</td><td>Cambiar el documento <b>dispara una nueva vectorización</b>.</td></tr>
-    <tr><td>delete()</td><td>Delete</td><td>Elimina vectores que ya no son relevantes.</td></tr>
+    <tr><th>Operación</th><th>Para qué</th><th>En simple</th></tr>
+    <tr><td>upsert()</td><td>Crear o actualizar</td><td>Si el ID ya existe, lo <b>actualiza</b>; si no, lo <b>crea</b>. Nunca duplica.</td></tr>
+    <tr><td>get()</td><td>Leer por ID</td><td>Como buscar un contacto <b>por su nombre exacto</b>.</td></tr>
+    <tr><td>query()</td><td>Buscar por significado</td><td>Como pedirle al bibliotecario <b>"algo sobre..."</b>. Es el corazón de RAG.</td></tr>
+    <tr><td>update()</td><td>Actualizar</td><td>Si cambiás el texto, se <b>recalculan sus números</b>.</td></tr>
+    <tr><td>delete()</td><td>Borrar</td><td>Saca la información que ya no sirve.</td></tr>
   </table>
+  <p class="note"><b>upsert</b> viene de <b>up</b>date + in<b>sert</b>: actualizar + insertar.</p>
 </section>
 
-<!-- 26 -->
+<!-- 28 · Metadatos y errores -->
 <section class="slide">
-  <h2>Metadatos y errores comunes</h2>
+  <h2>Etiquetas (metadatos) y errores comunes</h2>
   <div class="grid">
     <div class="card">
-      <h3>El rol de los metadatos</h3>
+      <h3>🏷️ Metadatos = etiquetas</h3>
+      <p class="small">Datos extra que se pegan a cada pedazo, como la etiqueta de una carpeta:</p>
 <pre>{<span class="s">"autor"</span>: <span class="s">"Juan"</span>, <span class="s">"fecha"</span>: <span class="s">"2024-05"</span>, <span class="s">"source"</span>: <span class="s">"pdf_v1"</span>}</pre>
-      <ul>
-        <li><b>Filtrar</b> resultados en la búsqueda.</li>
-        <li><b>Rastrear el origen</b> de lo que usa el LLM (citar fuentes).</li>
+      <ul class="small">
+        <li><b>Filtrar:</b> "buscá solo en los PDF de 2024".</li>
+        <li><b>Citar la fuente:</b> saber de qué documento salió cada respuesta.</li>
       </ul>
     </div>
     <div class="card bad">
-      <span class="tag bad">errores</span>
-      <ul>
-        <li><b>ID no determinista:</b> IDs aleatorios impiden el update. Usá hashes o IDs estructurados.</li>
-        <li><b>Desajuste de embeddings:</b> consultar con otro modelo distinto al de la carga = ruido.</li>
-        <li><b>Ignorar la persistencia:</b> cliente sin ruta de disco.</li>
+      <span class="tag bad">errores comunes</span>
+      <ul class="small">
+        <li><b>IDs al azar:</b> después no podés encontrar un pedazo para actualizarlo. Usá IDs con un criterio fijo, como <code>manual_pag3_parrafo2</code>.</li>
+        <li><b>Cambiar de modelo:</b> si guardaste con un modelo y buscás con otro, los resultados son ruido.</li>
+        <li><b>Olvidar la carpeta:</b> sin <code>path</code>, todo se pierde al cerrar.</li>
       </ul>
     </div>
   </div>
 </section>
 
-<!-- 27 -->
+<!-- 29 · Ejercicio 2: consigna -->
 <section class="slide">
   <h2>Ejercicio 2: qué tenés que hacer</h2>
-  <p><b>Objetivo:</b> una memoria vectorial que se guarde en disco y permita <b>insertar, buscar, filtrar y borrar</b>.</p>
-  <table>
-    <tr><th>Paso</th><th>Qué hacer</th></tr>
-    <tr><td>__init__</td><td><code>chromadb.PersistentClient(path=persist_path)</code> y <code>get_or_create_collection(name=..., embedding_function=embedding_functions.DefaultEmbeddingFunction())</code></td></tr>
-    <tr><td>upsert_documents</td><td><code>self.collection.upsert(ids=ids, documents=documents, metadatas=metadatas)</code></td></tr>
-    <tr><td>semantic_search</td><td><code>self.collection.query(query_texts=[query_text], n_results=n_results)</code> → lista de dicts con <code>document</code>, <code>metadata</code>, <code>distance</code></td></tr>
-    <tr><td>where</td><td>Parámetro opcional en <code>semantic_search</code>, pasado a <code>query()</code></td></tr>
-    <tr><td>delete_by_id</td><td><code>self.collection.delete(ids=ids)</code></td></tr>
+  <p><b>Objetivo:</b> una "memoria" que se guarde en disco y permita <b>guardar, buscar, filtrar y borrar</b> textos.</p>
+  <table class="plain">
+    <tr><th>Parte</th><th>Qué tiene que hacer</th></tr>
+    <tr><td>__init__</td><td>Abrir (o crear) la base en una carpeta con <code>chromadb.PersistentClient(path=persist_path)</code> y la colección con <code>get_or_create_collection(name=collection_name, embedding_function=embedding_functions.DefaultEmbeddingFunction())</code>.</td></tr>
+    <tr><td>upsert_documents</td><td>Guardar o actualizar: <code>self.collection.upsert(ids=ids, documents=documents, metadatas=metadatas)</code>.</td></tr>
+    <tr><td>semantic_search</td><td>Buscar por significado con <code>self.collection.query(query_texts=[query_text], n_results=n_results)</code> y devolver una lista de diccionarios con <code>document</code>, <code>metadata</code> y <code>distance</code>.</td></tr>
+    <tr><td>Filtro where</td><td>Sumarle a <code>semantic_search</code> un parámetro opcional <code>where</code> (filtro por etiqueta) y pasárselo a <code>query()</code>.</td></tr>
+    <tr><td>delete_by_id</td><td>Borrar por ID: <code>self.collection.delete(ids=ids)</code>.</td></tr>
   </table>
+  <p class="note">Una <b>colección</b> es como una carpeta dentro de la base: agrupa textos del mismo tipo.</p>
 </section>
 
-<!-- 28 -->
+<!-- 30 · Ejercicio 2: prueba -->
 <section class="slide">
-  <h2>Ejercicio 2: prueba y salida esperada</h2>
+  <h2>Ejercicio 2: prueba y qué deberías ver</h2>
 <pre>manager = VectorMemoryManager(<span class="s">"./chroma_db"</span>, <span class="s">"knowledge_base"</span>)
 manager.upsert_documents(
     [<span class="s">"doc1"</span>, <span class="s">"doc2"</span>, <span class="s">"doc3"</span>],
@@ -736,123 +930,233 @@ manager.upsert_documents(
 <span class="f">print</span>(manager.semantic_search(<span class="s">"memoria de IA"</span>, where={<span class="s">"source"</span>: <span class="s">"tech_blog"</span>}))
 manager.delete_by_id([<span class="s">"doc2"</span>])
 <span class="f">print</span>(manager.collection.count())</pre>
-  <ul>
-    <li>La 1ª búsqueda devuelve primero el documento de <b>Python 3.12</b>.</li>
-    <li>La 2ª solo devuelve documentos con <code>source: tech_blog</code>. Después de borrar, <code>count()</code> da <b>2</b>.</li>
-    <li>Si corrés de nuevo, los datos <b>siguen ahí</b>. La primera vez se descarga un modelo de embeddings: puede tardar.</li>
+  <ul class="small">
+    <li>La 1.ª búsqueda trae primero el texto de <b>Python 3.12</b>: es el que más se parece a "mejoras en python".</li>
+    <li>La 2.ª trae <b>solo</b> textos con la etiqueta <code>source: tech_blog</code>: el filtro funciona.</li>
+    <li>Después de borrar <code>doc2</code>, <code>count()</code> da <b>2</b>.</li>
+    <li>Si lo corrés otra vez, los datos <b>siguen ahí</b>: están en disco. La primera vez ChromaDB descarga un modelo de embeddings, así que puede tardar un poco.</li>
   </ul>
 </section>
 
-<!-- 29 -->
+<!-- 31 · Ejercicio 2: solución completa -->
 <section class="slide scroll">
-  <h2>Ejercicio 2: solución</h2>
+  <h2>Ejercicio 2: solución completa y comentada</h2>
   <div class="grid" style="grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);align-items:stretch">
-    <div class="card" style="padding:1vh .8vw"><span class="tag">Código completo · Ejercicio 2</span>
-<pre><span class="k">import</span> chromadb
-<span class="k">from</span> chromadb.utils <span class="k">import</span> embedding_functions
-<span class="k">from</span> typing <span class="k">import</span> List, Dict, Any, Optional
+    <div class="card" style="padding:1vh .8vw"><span class="tag">Código completo · copiá, pegá y corré · incluye la prueba de la diapositiva anterior</span>
+<pre><span class="c"># =====================================================================</span>
+<span class="c"># EJERCICIO 2: una "memoria" de textos guardada en disco, con ChromaDB</span>
+<span class="c"># =====================================================================</span>
+<span class="c"># Qué hace este programa:</span>
+<span class="c">#   1. CREA (o abre, si ya existe) una base de datos en una carpeta.</span>
+<span class="c">#   2. GUARDA tres textos, cada uno con una etiqueta ("source").</span>
+<span class="c">#   3. BUSCA por significado, con y sin filtro por etiqueta.</span>
+<span class="c">#   4. BORRA un texto y cuenta cuántos quedan.</span>
+<span class="c">#</span>
+<span class="c"># Antes de correrlo, instalá la librería (una sola vez), en la terminal:</span>
+<span class="c">#     pip install chromadb</span>
+<span class="c"># La primera vez que corre, ChromaDB descarga un modelo de embeddings</span>
+<span class="c"># (unos 80 MB): necesita internet y puede tardar un poco.</span>
+<span class="c"># =====================================================================</span>
 
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># IMPORTS: herramientas que ya existen</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">import</span> chromadb                                   <span class="c"># la base de datos vectorial</span>
+<span class="k">from</span> chromadb.utils <span class="k">import</span> embedding_functions    <span class="c"># modelos que convierten texto en números</span>
+<span class="k">from</span> typing <span class="k">import</span> List, Dict, Any, Optional      <span class="c"># solo sirven para anotar tipos:</span>
+                                                  <span class="c"># List = lista, Dict = diccionario,</span>
+                                                  <span class="c"># Any = cualquier cosa,</span>
+                                                  <span class="c"># Optional = "puede venir vacío (None)"</span>
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># LA CLASE: agrupa la base de datos y todas las operaciones sobre ella</span>
+<span class="c"># ---------------------------------------------------------------------</span>
 <span class="k">class</span> <span class="f">VectorMemoryManager</span>:
-    <span class="k">def</span> <span class="f">__init__</span>(self, persist_path: str, collection_name: str):
-        <span class="c"># Cliente persistente: los datos quedan en disco</span>
-        self.client = chromadb.PersistentClient(path=persist_path)
 
-        <span class="c"># Siempre el MISMO modelo de embeddings para cargar y consultar</span>
-        self.collection = self.client.get_or_create_collection(
+    <span class="c"># __init__ se ejecuta UNA VEZ, al crear la memoria.</span>
+    <span class="c">#   - persist_path: la carpeta donde se guarda todo (ej.: "./chroma_db")</span>
+    <span class="c">#   - collection_name: el nombre de la "colección", que es como una</span>
+    <span class="c">#     carpeta dentro de la base que agrupa textos del mismo tipo</span>
+    <span class="c"># "self" es la propia memoria: lo que guardamos en self.algo queda</span>
+    <span class="c"># disponible para las demás funciones de la clase.</span>
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>, persist_path: <span class="f">str</span>, collection_name: <span class="f">str</span>):
+
+        <span class="c"># PersistentClient = la base se guarda EN DISCO, en la carpeta indicada.</span>
+        <span class="c"># Si cerrás el programa y lo volvés a abrir, los datos siguen ahí.</span>
+        <span class="c"># (Sin "path", todo viviría en memoria y se perdería al cerrar.)</span>
+        <span class="k">self</span>.client = chromadb.PersistentClient(path=persist_path)
+
+        <span class="c"># get_or_create_collection: si la colección ya existe, la abre;</span>
+        <span class="c"># si no, la crea. Así el programa se puede correr muchas veces.</span>
+        <span class="c"># embedding_function: el modelo que convierte cada texto en números.</span>
+        <span class="c"># IMPORTANTE: hay que usar SIEMPRE el mismo modelo para guardar y para</span>
+        <span class="c"># buscar. Si se cambia, los números no son comparables y la búsqueda falla.</span>
+        <span class="k">self</span>.collection = <span class="k">self</span>.client.get_or_create_collection(
             name=collection_name,
             embedding_function=embedding_functions.DefaultEmbeddingFunction())
 
-    <span class="k">def</span> <span class="f">upsert_documents</span>(self, ids: List[str], documents: List[str],
-                         metadatas: List[Dict[str, Any]]):
-        <span class="c"># Si el ID existe, actualiza; si no, crea. Nunca duplica.</span>
-        self.collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="c"># GUARDAR (o actualizar) textos</span>
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="k">def</span> <span class="f">upsert_documents</span>(<span class="k">self</span>, ids: List[<span class="f">str</span>], documents: List[<span class="f">str</span>],
+                         metadatas: List[Dict[<span class="f">str</span>, Any]]):
+        <span class="s">"""Guarda textos nuevos o actualiza los que ya existen."""</span>
+        <span class="c"># Recibe tres listas del mismo largo, en el mismo orden:</span>
+        <span class="c">#   ids       -&gt; el nombre único de cada texto (ej.: "doc1")</span>
+        <span class="c">#   documents -&gt; los textos en sí</span>
+        <span class="c">#   metadatas -&gt; las etiquetas de cada texto (ej.: {"source": "news"})</span>
+        <span class="c"># upsert = update + insert: si el ID ya existe, lo ACTUALIZA;</span>
+        <span class="c"># si no existe, lo CREA. Nunca quedan duplicados.</span>
+        <span class="c"># ChromaDB calcula solo los números (embeddings) de cada texto.</span>
+        <span class="k">self</span>.collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
 
-    <span class="k">def</span> <span class="f">semantic_search</span>(self, query_text: str, n_results: int = <span class="w">3</span>,
-                        where: Optional[Dict[str, Any]] = <span class="k">None</span>):
-        kwargs = {<span class="s">"query_texts"</span>: [query_text], <span class="s">"n_results"</span>: n_results}
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="c"># BUSCAR por significado (el corazón de un sistema RAG)</span>
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="k">def</span> <span class="f">semantic_search</span>(<span class="k">self</span>, query_text: <span class="f">str</span>, n_results: <span class="f">int</span> = <span class="w">3</span>,
+                        where: Optional[Dict[<span class="f">str</span>, Any]] = <span class="k">None</span>):
+        <span class="s">"""Devuelve los textos más parecidos a la pregunta."""</span>
+        <span class="c">#   query_text -&gt; lo que buscamos, escrito con nuestras palabras</span>
+        <span class="c">#   n_results  -&gt; cuántos resultados queremos como máximo (por defecto, 3)</span>
+        <span class="c">#   where      -&gt; filtro opcional por etiqueta, ej.: {"source": "tech_blog"}</span>
+        <span class="c">#                 (si no lo pasamos, vale None y se busca en todo)</span>
+
+        <span class="c"># Armamos los datos de la búsqueda en un diccionario...</span>
+        kwargs = {<span class="s">"</span><span class="s">query_texts</span><span class="s">"</span>: [query_text], <span class="s">"</span><span class="s">n_results</span><span class="s">"</span>: n_results}
+        <span class="c"># ...y solo si nos pasaron un filtro, lo agregamos.</span>
         <span class="k">if</span> where:
-            kwargs[<span class="s">"where"</span>] = where   <span class="c"># filtro por metadato</span>
-        res = self.collection.<span class="f">query</span>(**kwargs)
+            kwargs[<span class="s">"</span><span class="s">where</span><span class="s">"</span>] = where
 
-        <span class="c"># query() devuelve listas de listas (una por query_text): usamos [0]</span>
+        <span class="c"># query() convierte la pregunta en números y busca los textos más cercanos.</span>
+        <span class="c"># Los ** "desarman" el diccionario: es igual a escribir</span>
+        <span class="c"># query(query_texts=[...], n_results=..., where=...)</span>
+        res = <span class="k">self</span>.collection.query(**kwargs)
+
+        <span class="c"># query() permite hacer varias preguntas a la vez, así que devuelve</span>
+        <span class="c"># una lista de resultados POR CADA pregunta. Como hicimos una sola,</span>
+        <span class="c"># tomamos la primera con [0].</span>
+        <span class="c"># zip() recorre las tres listas a la vez (texto, etiqueta y distancia</span>
+        <span class="c"># de cada resultado) y armamos un diccionario prolijo por resultado.</span>
+        <span class="c"># Distancia: cuanto MÁS CHICA, MÁS PARECIDO es el texto a la pregunta.</span>
         <span class="k">return</span> [
-            {<span class="s">"document"</span>: doc, <span class="s">"metadata"</span>: meta, <span class="s">"distance"</span>: dist}
-            <span class="k">for</span> doc, meta, dist <span class="k">in</span> zip(res[<span class="s">"documents"</span>][0],
-                                       res[<span class="s">"metadatas"</span>][0],
-                                       res[<span class="s">"distances"</span>][0])]
+            {<span class="s">"</span><span class="s">document</span><span class="s">"</span>: doc, <span class="s">"</span><span class="s">metadata</span><span class="s">"</span>: meta, <span class="s">"</span><span class="s">distance</span><span class="s">"</span>: dist}
+            <span class="k">for</span> doc, meta, dist in <span class="f">zip</span>(res[<span class="s">"</span><span class="s">documents</span><span class="s">"</span>][<span class="w">0</span>],
+                                       res[<span class="s">"</span><span class="s">metadatas</span><span class="s">"</span>][<span class="w">0</span>],
+                                       res[<span class="s">"</span><span class="s">distances</span><span class="s">"</span>][<span class="w">0</span>])]
 
-    <span class="k">def</span> <span class="f">delete_by_id</span>(self, ids: List[str]):
-        self.collection.<span class="f">delete</span>(ids=ids)</pre>
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="c"># BORRAR textos por su ID</span>
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="k">def</span> <span class="f">delete_by_id</span>(<span class="k">self</span>, ids: List[<span class="f">str</span>]):
+        <span class="s">"""Borra de la base los textos con esos IDs."""</span>
+        <span class="k">self</span>.collection.delete(ids=ids)
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># PROGRAMA PRINCIPAL: lo que se ejecuta al correr el archivo</span>
+<span class="c"># (este "if" evita que se ejecute si el archivo se importa desde otro programa)</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">if</span> __name__ == <span class="s">"</span><span class="s">__main__</span><span class="s">"</span>:
+
+    <span class="c"># 1. Crear (o abrir) la memoria en la carpeta ./chroma_db</span>
+    manager = VectorMemoryManager(<span class="s">"</span><span class="s">./chroma_db</span><span class="s">"</span>, <span class="s">"</span><span class="s">knowledge_base</span><span class="s">"</span>)
+
+    <span class="c"># 2. Guardar tres textos, cada uno con su etiqueta "source" (origen)</span>
+    manager.upsert_documents(
+        [<span class="s">"</span><span class="s">doc1</span><span class="s">"</span>, <span class="s">"</span><span class="s">doc2</span><span class="s">"</span>, <span class="s">"</span><span class="s">doc3</span><span class="s">"</span>],
+        [<span class="s">"</span><span class="s">Python 3.12 introduce mejoras en asyncio y tipos.</span><span class="s">"</span>,
+         <span class="s">"</span><span class="s">Las bases de datos vectoriales son clave para la memoria de largo plazo en IA.</span><span class="s">"</span>,
+         <span class="s">"</span><span class="s">FastAPI permite crear APIs asíncronas en Python.</span><span class="s">"</span>],
+        [{<span class="s">"</span><span class="s">source</span><span class="s">"</span>: <span class="s">"</span><span class="s">news</span><span class="s">"</span>}, {<span class="s">"</span><span class="s">source</span><span class="s">"</span>: <span class="s">"</span><span class="s">tech_blog</span><span class="s">"</span>}, {<span class="s">"</span><span class="s">source</span><span class="s">"</span>: <span class="s">"</span><span class="s">tech_blog</span><span class="s">"</span>}],
+    )
+
+    <span class="c"># 3a. Buscar SIN filtro: debería aparecer primero el texto de Python 3.12</span>
+    <span class="f">print</span>(<span class="s">"</span><span class="s">Búsqueda: </span><span class="s">'</span><span class="s">mejoras en python</span><span class="s">'</span><span class="s">"</span>)
+    <span class="k">for</span> r in manager.semantic_search(<span class="s">"</span><span class="s">mejoras en python</span><span class="s">"</span>):
+        <span class="f">print</span>(<span class="s">"</span>  <span class="s">"</span>, r)
+
+    <span class="c"># 3b. Buscar CON filtro: solo textos con la etiqueta source = tech_blog</span>
+    <span class="f">print</span>(<span class="s">"</span><span class="s">\n</span><span class="s">Búsqueda: </span><span class="s">'</span><span class="s">memoria de IA</span><span class="s">'</span><span class="s"> (solo tech_blog)</span><span class="s">"</span>)
+    <span class="k">for</span> r in manager.semantic_search(<span class="s">"</span><span class="s">memoria de IA</span><span class="s">"</span>, where={<span class="s">"</span><span class="s">source</span><span class="s">"</span>: <span class="s">"</span><span class="s">tech_blog</span><span class="s">"</span>}):
+        <span class="f">print</span>(<span class="s">"</span>  <span class="s">"</span>, r)
+
+    <span class="c"># 4. Borrar doc2 y contar cuántos textos quedan: debería dar 2</span>
+    manager.delete_by_id([<span class="s">"</span><span class="s">doc2</span><span class="s">"</span>])
+    <span class="f">print</span>(<span class="s">"</span><span class="s">\n</span><span class="s">Textos guardados después de borrar:</span><span class="s">"</span>, manager.collection.count())
+
+    <span class="c"># Si corrés el programa otra vez, los datos siguen en ./chroma_db.</span>
+    <span class="c"># El upsert vuelve a guardar doc2 (sin duplicar los otros) y el</span>
+    <span class="c"># borrado lo vuelve a sacar, así que el resultado final sigue siendo 2.</span></pre>
     </div>
   </div>
-  <p class="note">Ojo: en ChromaDB la <b>distancia</b> es "menor = más parecido" (lo contrario de la similitud).</p>
 </section>
 
-<!-- 30 -->
+<!-- 32 · Resumen -->
 <section class="slide">
-  <h2>Resumen</h2>
+  <h2>Resumen de la clase</h2>
   <ul>
-    <li>Un <b>embedding</b> convierte texto en un vector: significados parecidos ⇒ puntos cercanos.</li>
-    <li><b>Similitud coseno</b>: la métrica estándar en RAG; mide dirección, no longitud.</li>
-    <li>Nunca mezcles modelos de embeddings: cada uno es un <b>espacio distinto</b>.</li>
-    <li><b>Chunking</b> = limpiar + cortar con <code>RecursiveCharacterTextSplitter</code> + <b>overlap</b>, midiendo en <b>tokens</b>.</li>
-    <li><b>ChromaDB</b> con <code>PersistentClient</code>: la memoria sobrevive al reinicio.</li>
-    <li><code>upsert</code> + IDs deterministas; <code>query</code> para semántica, <code>get</code> para exactos; metadatos para filtrar y citar.</li>
+    <li><b>RAG:</b> la IA busca en tus documentos antes de responder.</li>
+    <li><b>Embedding:</b> una lista de números <b>densa</b> (todas las posiciones con información) que representa el significado de un texto.</li>
+    <li><b>Similitud coseno:</b> mide si dos textos "apuntan" a la misma idea.</li>
+    <li>Nunca mezcles modelos: cada uno arma su propio "mapa" de números.</li>
+    <li><b>Chunking:</b> limpiar, cortar en pausas naturales y dejar overlap, midiendo en <b>tokens</b>.</li>
+    <li><b>ChromaDB:</b> guarda textos y números en disco; <code>upsert</code> para guardar, <code>query</code> para buscar por significado, metadatos para filtrar y citar.</li>
   </ul>
   <p class="sub">¿Preguntas?</p>
 </section>
 
-<!-- 31 -->
+<!-- 33 · Entrega -->
 <section class="slide">
-  <h2>Entrega: RAG asíncrono con ChromaDB</h2>
+  <h2>Entrega: tu propio sistema RAG</h2>
+  <p>Vas a unir todo lo de hoy en un programa que <b>responda preguntas usando tus documentos</b>.</p>
   <div class="grid" style="gap:1.4vw;align-items:stretch">
     <div class="card">
-      <h3>Qué tenés que hacer</h3>
-      <ul>
-        <li>Entorno virtual con <code>langchain</code>, <code>chromadb</code>, <code>openai</code> (o tu provider) y <code>pydantic</code>.</li>
-        <li><b>Script de carga:</b> lee <code>/data</code>, aplica chunking (mín. <b>500 tokens / 50 overlap</b>) y guarda en ChromaDB local.</li>
-        <li>Función async <code>get_rag_response(query: str)</code> que:
-          a) busca en ChromaDB, b) arma el prompt con los fragmentos, c) llama al LLM async, d) parsea a un modelo <b>Pydantic</b> con texto y referencias.</li>
-        <li>Dos pruebas: una pregunta <b>con respuesta</b> en los docs y una <b>"pregunta trampa"</b> sin respuesta (no debe alucinar).</li>
+      <h3>Pasos</h3>
+      <ul class="small">
+        <li><b>Preparar:</b> un entorno virtual con <code>langchain</code>, <code>chromadb</code>, <code>openai</code> (u otro proveedor) y <code>pydantic</code>.</li>
+        <li><b>Cargar:</b> un script que lea la carpeta <code>/data</code>, corte los textos (mínimo <b>500 tokens</b> con <b>50 de overlap</b>) y los guarde en ChromaDB.</li>
+        <li><b>Responder:</b> una función asíncrona <code>get_rag_response(query: str)</code> que (a) busque en ChromaDB, (b) arme el mensaje para el modelo (el <b>prompt</b>) con los pedazos encontrados, (c) llame al modelo sin trabar el programa y (d) devuelva un objeto <b>Pydantic</b> con el texto y las referencias.</li>
+        <li><b>Probar:</b> una pregunta cuya respuesta <b>sí</b> esté en los documentos y una <b>"pregunta trampa"</b> que no. Ante la trampa, tiene que decir que no sabe, sin inventar (<b>"alucinar"</b>).</li>
       </ul>
     </div>
     <div class="card">
-      <h3>Flujo</h3>
+      <h3>Cómo fluye</h3>
       <div class="flow" style="flex-direction:column;gap:.4vh">
-        <div class="node">query</div><span class="arrow">↓</span>
-        <div class="node m">ChromaDB.query()<small>top-k chunks</small></div><span class="arrow">↓</span>
-        <div class="node">prompt + contexto</div><span class="arrow">↓</span>
-        <div class="node o">LLM.ainvoke()<small>→ Pydantic {respuesta, referencias}</small></div>
+        <div class="node">Pregunta</div><span class="arrow">↓</span>
+        <div class="node m">Buscar en ChromaDB<small>los pedazos más cercanos</small></div><span class="arrow">↓</span>
+        <div class="node">Armar el prompt<small>pregunta + pedazos</small></div><span class="arrow">↓</span>
+        <div class="node o">El modelo responde<small>texto + referencias</small></div>
       </div>
     </div>
   </div>
-  <p class="note">Sin llaves de API en el código: usá variables de entorno en <code>.env</code> (y agregalo al <code>.gitignore</code>).</p>
+  <p class="note"><b>Asíncrona</b> = el programa puede esperar la respuesta del modelo sin quedarse trabado. <b>Pydantic</b> = una herramienta que asegura que la respuesta tenga siempre la misma forma.</p>
 </section>
 
-<!-- 32 -->
+<!-- 34 · Qué entregar -->
 <section class="slide">
   <h2>Qué tenés que entregar</h2>
   <div class="grid">
     <div class="card">
-      <h3>Repositorio de GitHub</h3>
+      <h3>Un repositorio de GitHub con:</h3>
       <ul>
-        <li>1) Script de <b>ingesta</b> de documentos</li>
-        <li>2) Script/Notebook con la <b>cadena RAG asíncrona</b></li>
-        <li>3) Un <b>dataset de ejemplo</b> (txt/md)</li>
-        <li>4) Un <b>README</b> explicando cómo ejecutar el sistema</li>
+        <li>1) El script que <b>carga los documentos</b></li>
+        <li>2) El script o notebook con la <b>cadena RAG asíncrona</b></li>
+        <li>3) Unos <b>documentos de ejemplo</b> (.txt o .md)</li>
+        <li>4) Un <b>README</b> con las instrucciones para ejecutarlo</li>
       </ul>
     </div>
     <div class="card">
-      <h3>Checklist</h3>
+      <h3>Antes de entregar, revisá:</h3>
       <ul>
-        <li>Chunks medidos en tokens con overlap</li>
-        <li><code>PersistentClient</code> + mismo modelo de embeddings</li>
-        <li>Salida Pydantic con <b>referencias</b> (metadatos <code>source</code>)</li>
-        <li>Pregunta trampa respondida con "no lo sé"</li>
-        <li><code>.env</code> fuera del repo</li>
+        <li>Los pedazos se miden en <b>tokens</b> y tienen overlap</li>
+        <li>Guardás y buscás con el <b>mismo modelo</b> de embeddings</li>
+        <li>Cada respuesta dice <b>de qué documento</b> salió</li>
+        <li>Ante la pregunta trampa, responde que <b>no sabe</b></li>
       </ul>
     </div>
   </div>
+  <p class="note"><b>Tu clave de API es como una contraseña: no la subas.</b> Guardala en un archivo <code>.env</code> y agregá ese archivo a <code>.gitignore</code> para que no se suba al repositorio.</p>
 </section>
 
 </div>
@@ -878,14 +1182,14 @@ manager.delete_by_id([<span class="s">"doc2"</span>])
     while (overflows() && z > 0.4) { z = Math.round((z - 0.03) * 100) / 100; apply(); }
   }
   const sections = [
-    {name:'Embeddings',   from:2,  to:6},
-    {name:'Similitud',    from:7,  to:10},
-    {name:'Aplicaciones', from:11, to:13},
-    {name:'Chunking',     from:14, to:18},
-    {name:'Ejercicio 1',  from:19, to:23},
-    {name:'ChromaDB',     from:24, to:26},
-    {name:'Ejercicio 2',  from:27, to:29},
-    {name:'Entrega',      from:30, to:32}
+    {name:'Qué es RAG',       from:2,  to:3},
+    {name:'Embeddings',       from:4,  to:8},
+    {name:'Similitud y usos', from:9,  to:14},
+    {name:'Chunking',         from:15, to:19},
+    {name:'Ejercicio 1',      from:20, to:23},
+    {name:'ChromaDB',         from:24, to:26},
+    {name:'Ejercicio 2',      from:27, to:29},
+    {name:'Entrega',          from:30, to:32}
   ];
   let i = 0;
   const bar = document.getElementById('bar'), count = document.getElementById('count');
