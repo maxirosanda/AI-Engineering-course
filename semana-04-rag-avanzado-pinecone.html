@@ -281,7 +281,7 @@ html,body{transition:background .3s,color .3s}
     <li>El pipeline completo: <b>ingesta</b> y <b>recuperación</b></li>
     <li><b>Ingesta masiva</b>: por qué subir en lotes (batching)</li>
     <li><b>Filtros por metadatos</b> y el riesgo del <i>schema drift</i></li>
-    <li>Dos ejercicios prácticos y la <b>Pre-entrega 4</b></li>
+    <li>Dos ejercicios prácticos en Pinecone real y la <b>Pre-entrega 4</b></li>
   </ul>
 </section>
 
@@ -619,7 +619,7 @@ index.<span class="f">query</span>(vector=consulta, top_k=<span class="w">5</spa
 <section class="slide scroll">
   <h2>Ejercicio 1: solución completa y comentada</h2>
   <div class="grid" style="grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);align-items:stretch">
-    <div class="card" style="padding:1vh .8vw"><span class="tag">Código completo · Ejercicio 1</span>
+    <div class="card" style="padding:1vh .8vw"><div style="display:flex;align-items:center;justify-content:space-between;gap:1vw;flex-wrap:wrap"><span class="tag">Código completo · Ejercicio 1</span><a class="tag" href="https://github.com/maxirosanda/ai-engineering-clase4_pinecode_ejercicio1.git" target="_blank" rel="noopener" style="text-decoration:none">🔗 Repositorio en GitHub</a></div>
 <pre><span class="c"># =====================================================================</span>
 <span class="c"># EJERCICIO 1: crear un índice serverless, cargar vectores y ver estadísticas</span>
 <span class="c"># =====================================================================</span>
@@ -629,10 +629,13 @@ index.<span class="f">query</span>(vector=consulta, top_k=<span class="w">5</spa
 <span class="c"># =====================================================================</span>
 <span class="k">import</span> os
 <span class="k">import</span> asyncio
+<span class="k">from</span> dotenv <span class="k">import</span> load_dotenv
 <span class="k">from</span> pinecone <span class="k">import</span> Pinecone, ServerlessSpec
 
-<span class="c"># os.getenv lee la clave del entorno: nunca la escribas en el código</span>
+<span class="f">load_dotenv</span>()
+
 PINECONE_API_KEY = os.getenv(<span class="s">"PINECONE_API_KEY"</span>)
+
 
 <span class="c"># El namespace (partición) donde vamos a guardar los vectores de prueba</span>
 NAMESPACE = <span class="s">"dev-environment"</span>
@@ -847,45 +850,64 @@ NAMESPACE = <span class="s">"dev-environment"</span>
 <!-- 19 · Ejercicio 2: consigna -->
 <section class="slide">
   <h2>Ejercicio 2: qué tenés que hacer</h2>
-  <p><b>Objetivo:</b> cargar muchos documentos <b>en lotes</b>, cada uno con sus metadatos, y buscar <b>filtrando por categoría</b>. Se usa un índice simulado (<code>MockPineconeIndex</code>): no hace falta cuenta de Pinecone.</p>
+  <p><b>Objetivo:</b> sobre el <b>mismo índice del Ejercicio 1</b>, cargar documentos reales <b>en lotes</b>, con embeddings de OpenAI y metadatos, y buscar <b>filtrando por categoría</b>.</p>
+  <div class="flow">
+    <div class="node">5 documentos<small>texto + categoría + autor</small></div><span class="arrow">→</span>
+    <div class="node m">embed<small>1 llamada a OpenAI por lote</small></div><span class="arrow">→</span>
+    <div class="node o">upsert<small>1 llamada a Pinecone por lote</small></div><span class="arrow">→</span>
+    <div class="node m">query + filtro<small>solo "legal"</small></div>
+  </div>
   <table class="plain">
     <tr><th>Parte</th><th>Qué tiene que hacer</th></tr>
-    <tr><td>create_metadata</td><td>Devolver un diccionario con <code>category</code>, <code>author</code>, <code>ingested_at</code> (<code>datetime.now().isoformat()</code>) y <code>char_count</code> (<code>len(doc_text)</code>).</td></tr>
-    <tr><td>process_and_upsert_batches</td><td>Recorrer <code>documents</code> de a <code>batch_size</code> con <code>range(0, len(documents), batch_size)</code>. Por cada lote, armar los vectores con <code>id</code> (<code>str(uuid.uuid4())</code>), <code>values</code> (un embedding simulado, <code>[0.1] * 8</code>) y <code>metadata</code>. Llamar a <code>await self.index.upsert(vectors)</code> <b>una vez por lote</b> y devolver el total procesado.</td></tr>
-    <tr><td>search_by_category</td><td><code>await self.index.query(vector=query_vector, top_k=5, filter={"category": {"$eq": category}})</code>.</td></tr>
-    <tr><td>main</td><td>Ejecutar la ingesta con <code>batch_size=2</code> y después una búsqueda de la categoría <code>"legal"</code>.</td></tr>
+    <tr><td>embed</td><td>Recibir una <b>lista</b> de textos y devolver una <b>lista</b> de vectores, en el mismo orden, con <code>text-embedding-3-small</code> (1536, igual que el índice). <b>Una sola llamada</b> a OpenAI por lote.</td></tr>
+    <tr><td>create_metadata</td><td>La <b>única</b> función que arma metadatos (evita el <i>schema drift</i>): <code>text</code> (el texto original, porque Pinecone solo guarda números), <code>category</code>, <code>author</code>, <code>ingested_at</code> (<code>datetime.now().isoformat()</code>) y <code>char_count</code> (<code>len(doc_text)</code>).</td></tr>
+    <tr><td>process_and_upsert_batches</td><td>Recorrer <code>documents</code> con <code>range(0, len(documents), batch_size)</code> y recortar cada lote con <code>documents[i : i + batch_size]</code>. Por cada lote: embeddings, vectores con <code>id</code> fijo (<code>f"doc-{i + j + 1}"</code>), <code>values</code> y <code>metadata</code>, y <b>un</b> <code>index.upsert(vectors=..., namespace="documentos")</code>.</td></tr>
+    <tr><td>search_by_category</td><td>Pasar la pregunta a vector con el <b>mismo modelo</b> y hacer <code>index.query(...)</code> en <code>"documentos"</code> con <code>filter={"category": {"$eq": category}}</code> e <code>include_metadata=True</code>.</td></tr>
+    <tr><td>main</td><td>Verificar que el índice exista (si no, <code>SystemExit</code>), ingestar con <code>batch_size=2</code>, esperar unos segundos, buscar en <code>"legal"</code> e imprimir <code>describe_index_stats()</code>.</td></tr>
   </table>
-  <p class="note"><b>Mock</b> = un objeto "de mentira" que imita al real. Sirve para probar la lógica sin conectarse a ningún servicio.</p>
+  <p class="note"><b>Qué necesitás:</b> haber corrido el Ejercicio 1, <code>pip install pinecone openai python-dotenv</code> y un <code>.env</code> con <code>PINECONE_API_KEY</code> y <code>OPENAI_API_KEY</code>. <b>Pista:</b> usá <code>zip(batch, embeddings)</code> para juntar cada documento con su vector.</p>
 </section>
 
 <!-- 20 · Ejercicio 2: prueba y salida -->
 <section class="slide">
   <h2>Ejercicio 2: prueba y qué deberías ver</h2>
-  <p>Reemplazá <code>docs</code> por <b>5 documentos</b> (2 de legal, 2 de hr y 1 de finanzas) y agregá un <code>print(len(vectors))</code> dentro de <code>MockPineconeIndex.upsert</code> para ver cada lote.</p>
+  <p>Cargamos <b>5 documentos</b> (2 de legal, 2 de hr y 1 de finanzas) de a <b>2 por lote</b>, y preguntamos por <b>acuerdos de confidencialidad</b>, solo dentro de legal.</p>
   <div class="grid">
     <div class="card">
-      <span class="tag">input de prueba</span>
-<pre>docs = [
-  {<span class="s">"text"</span>: <span class="s">"Contrato de servicios"</span>, <span class="s">"category"</span>: <span class="s">"legal"</span>,    <span class="s">"author"</span>: <span class="s">"User1"</span>},
-  {<span class="s">"text"</span>: <span class="s">"Acuerdo NDA"</span>,           <span class="s">"category"</span>: <span class="s">"legal"</span>,    <span class="s">"author"</span>: <span class="s">"User1"</span>},
-  {<span class="s">"text"</span>: <span class="s">"Política de licencias"</span>, <span class="s">"category"</span>: <span class="s">"hr"</span>,       <span class="s">"author"</span>: <span class="s">"User2"</span>},
-  {<span class="s">"text"</span>: <span class="s">"Manual de onboarding"</span>,  <span class="s">"category"</span>: <span class="s">"hr"</span>,       <span class="s">"author"</span>: <span class="s">"User2"</span>},
-  {<span class="s">"text"</span>: <span class="s">"Presupuesto anual"</span>,     <span class="s">"category"</span>: <span class="s">"finanzas"</span>, <span class="s">"author"</span>: <span class="s">"User3"</span>},
-]</pre>
+      <span class="tag">cómo se arman los lotes</span>
+<pre><span class="c"># range(0, 5, 2) → i = 0, 2, 4</span>
+i=<span class="w">0</span> → docs[<span class="w">0</span>:<span class="w">2</span>] → doc-1, doc-2   <span class="c"># legal, legal</span>
+i=<span class="w">2</span> → docs[<span class="w">2</span>:<span class="w">4</span>] → doc-3, doc-4   <span class="c"># hr, hr</span>
+i=<span class="w">4</span> → docs[<span class="w">4</span>:<span class="w">6</span>] → doc-5          <span class="c"># finanzas</span>
+
+<span class="c"># cada vector que se sube:</span>
+{<span class="s">"id"</span>: <span class="s">"doc-2"</span>,
+ <span class="s">"values"</span>: [<span class="w">0.012</span>, <span class="w">-0.034</span>, ...],  <span class="c"># 1536</span>
+ <span class="s">"metadata"</span>: {<span class="s">"text"</span>: <span class="s">"Acuerdo de..."</span>,
+              <span class="s">"category"</span>: <span class="s">"legal"</span>,
+              <span class="s">"author"</span>: <span class="s">"User1"</span>,
+              <span class="s">"ingested_at"</span>: <span class="s">"2026-11-24T..."</span>,
+              <span class="s">"char_count"</span>: <span class="w">68</span>}}</pre>
     </div>
     <div class="card ok">
       <span class="tag ok">salida esperada</span>
-<pre>Lote recibido: 2 vectores
-Lote recibido: 2 vectores
-Lote recibido: 1 vectores
+<pre>Lote subido: 2 vectores
+Lote subido: 2 vectores
+Lote subido: 1 vectores
 Total procesado: 5
-Filtro usado: {'category': {'$eq': 'legal'}}
-Resultado: {'matches': []}</pre>
+
+Pregunta: ¿Qué acuerdos de confidencialidad...?
+  0.7.. · doc-2 · Acuerdo de confidencialidad (NDA)...
+  0.3.. · doc-1 · Contrato de servicios con el...
+
+namespaces: {'dev-environment': {'vector_count': 3},
+             'documentos':      {'vector_count': 5}}</pre>
     </div>
   </div>
   <ul class="small">
-    <li><b>3 llamadas</b> a <code>upsert</code>, con 2, 2 y 1 vectores: 5 documentos de a 2 dejan un último lote incompleto.</li>
-    <li>El índice simulado devuelve <code>matches</code> <b>vacío</b>: lo que se evalúa es que el <b>filtro esté bien armado</b>.</li>
+    <li><b>3 llamadas</b> a <code>upsert</code> (2, 2 y 1): <code>docs[4:6]</code> se pasa del largo, pero Python devuelve lo que hay.</li>
+    <li>Solo <b>2 resultados</b> aunque pedimos <code>top_k=5</code>: el filtro deja afuera hr y finanzas. El NDA sale <b>primero</b> por significado (la pregunta no dice "NDA"). Los <b>scores exactos</b> pueden variar.</li>
+    <li>Si lo corrés dos veces, sigue habiendo <b>5</b> vectores: los <code>id</code> fijos hacen que <code>upsert</code> actualice en vez de duplicar.</li>
   </ul>
 </section>
 
@@ -893,114 +915,285 @@ Resultado: {'matches': []}</pre>
 <section class="slide scroll">
   <h2>Ejercicio 2: solución completa y comentada</h2>
   <div class="grid" style="grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);align-items:stretch">
-    <div class="card" style="padding:1vh .8vw"><span class="tag">Código completo · Ejercicio 2 · no necesita cuenta ni instalar nada</span>
+    <div class="card" style="padding:1vh .8vw"><div style="display:flex;align-items:center;justify-content:space-between;gap:1vw;flex-wrap:wrap"><span class="tag">Código completo · Ejercicio 2 · continúa el índice del Ejercicio 1</span><a class="tag" href="https://github.com/maxirosanda/ai-engineering-clase4_pinecode_ejercicio2.git" target="_blank" rel="noopener" style="text-decoration:none">🔗 Repositorio en GitHub</a></div>
 <pre><span class="c"># =====================================================================</span>
 <span class="c"># EJERCICIO 2: ingesta en lotes con metadatos y búsqueda filtrada</span>
 <span class="c"># =====================================================================</span>
-<span class="c"># Usa un índice SIMULADO: corre con Python solo, sin cuenta de Pinecone.</span>
+<span class="c"># Continúa el Ejercicio 1: usa el MISMO índice ("mi-indice-serverless").</span>
+<span class="c">#</span>
+<span class="c"># ¿Qué hace este programa? Tres cosas, en orden:</span>
+<span class="c">#   1. INGESTA: toma 5 documentos de texto, los convierte en vectores</span>
+<span class="c">#      con OpenAI y los sube a Pinecone EN LOTES (de a 2).</span>
+<span class="c">#   2. BÚSQUEDA: hace una pregunta y busca la respuesta SOLO entre los</span>
+<span class="c">#      documentos de la categoría "legal" (filtro por metadatos).</span>
+<span class="c">#   3. ESTADÍSTICAS: muestra que el índice ahora tiene dos namespaces.</span>
+<span class="c">#</span>
+<span class="c"># Antes de correrlo (una sola vez), en la terminal:</span>
+<span class="c">#     pip install pinecone openai python-dotenv</span>
+<span class="c"># y en tu archivo .env (en la misma carpeta que este archivo):</span>
+<span class="c">#     PINECONE_API_KEY=...</span>
+<span class="c">#     OPENAI_API_KEY=...</span>
 <span class="c"># =====================================================================</span>
-<span class="k">import</span> asyncio
-<span class="k">import</span> uuid                      <span class="c"># genera identificadores únicos</span>
-<span class="k">from</span> datetime <span class="k">import</span> datetime    <span class="c"># fecha y hora actuales</span>
-<span class="k">from</span> typing <span class="k">import</span> List, Dict, Any
-
 
 <span class="c"># ---------------------------------------------------------------------</span>
-<span class="c"># ÍNDICE SIMULADO: imita los métodos del índice real de Pinecone</span>
+<span class="c"># IMPORTS: las herramientas que vamos a usar</span>
 <span class="c"># ---------------------------------------------------------------------</span>
-<span class="k">class</span> <span class="f">MockPineconeIndex</span>:
-    <span class="k">async def</span> <span class="f">upsert</span>(self, vectors: List[Dict]):
-        <span class="c"># Mostramos el tamaño de cada lote para comprobar el batching</span>
-        <span class="f">print</span>(f<span class="s">"Lote recibido: {len(vectors)} vectores"</span>)
-        <span class="k">return</span> {<span class="s">"upserted_count"</span>: len(vectors)}
+<span class="k">import</span> os                               <span class="c"># para leer variables de entorno (las claves)</span>
+<span class="k">import</span> time                             <span class="c"># para hacer una pausa con time.sleep()</span>
+<span class="k">from</span> datetime <span class="k">import</span> datetime           <span class="c"># para guardar la fecha y hora de carga</span>
+<span class="k">from</span> typing <span class="k">import</span> List, Dict, Any      <span class="c"># "pistas de tipo": documentan qué recibe y</span>
+                                        <span class="c"># devuelve cada función (Python no las exige)</span>
+<span class="k">from</span> dotenv <span class="k">import</span> load_dotenv          <span class="c"># lee el archivo .env</span>
+<span class="k">from</span> openai <span class="k">import</span> OpenAI               <span class="c"># cliente de OpenAI: genera los embeddings</span>
+<span class="k">from</span> pinecone <span class="k">import</span> Pinecone           <span class="c"># cliente de Pinecone: guarda y busca vectores</span>
 
-    <span class="k">async def</span> <span class="f">query</span>(self, vector: List[float], top_k: int, filter: Dict = <span class="k">None</span>):
-        <span class="c"># Mostramos el filtro para comprobar que llegó bien armado</span>
-        <span class="f">print</span>(f<span class="s">"Filtro usado: {filter}"</span>)
-        <span class="k">return</span> {<span class="s">"matches"</span>: []}
+<span class="c"># Carga las variables del archivo .env como si fueran variables de entorno.</span>
+<span class="c"># Después de esta línea, os.getenv("PINECONE_API_KEY") ya devuelve tu clave.</span>
+<span class="f">load_dotenv</span>()
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># CONSTANTES: valores fijos que usa todo el programa.</span>
+<span class="c"># Se escriben en MAYÚSCULAS por convención. Tenerlos en un solo lugar</span>
+<span class="c"># evita errores: si hay que cambiar algo, se cambia acá y listo.</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+INDEX_NAME = <span class="s">"mi-indice-serverless"</span>          <span class="c"># el índice que creó el Ejercicio 1</span>
+NAMESPACE = <span class="s">"documentos"</span>                     <span class="c"># otra partición, separada de "dev-environment"</span>
+EMBEDDING_MODEL = <span class="s">"text-embedding-3-small"</span>   <span class="c"># genera vectores de 1536 números:</span>
+                                             <span class="c"># TIENE que coincidir con la dimensión</span>
+                                             <span class="c"># del índice, o Pinecone da error</span>
 
 
 <span class="c"># ---------------------------------------------------------------------</span>
 <span class="c"># EL PIPELINE DE INGESTA</span>
 <span class="c"># ---------------------------------------------------------------------</span>
-<span class="k">class</span> <span class="f">IngestionPipeline</span>:
-    <span class="k">def</span> <span class="f">__init__</span>(self, index: MockPineconeIndex):
-        self.index = index
+<span class="c"># Una CLASE agrupa datos y funciones que trabajan juntos.</span>
+<span class="c"># Acá juntamos todo lo necesario para cargar y buscar documentos:</span>
+<span class="c"># la conexión a Pinecone, la conexión a OpenAI y las funciones que las usan.</span>
+<span class="k">class</span> IngestionPipeline:
 
-    <span class="c"># La ÚNICA función que arma metadatos: así todos los vectores tienen</span>
-    <span class="c"># las mismas claves y el mismo formato (evita el "schema drift").</span>
+    <span class="c"># __init__ se ejecuta UNA vez, al crear el objeto:</span>
+    <span class="c">#     pipeline = IngestionPipeline(index, OpenAI())</span>
+    <span class="c"># Guarda las dos conexiones en "self" para que las demás funciones</span>
+    <span class="c"># de la clase puedan usarlas (self.index y self.openai).</span>
+    <span class="k">def</span> <span class="f">__init__</span>(self, index, openai_client: OpenAI):
+        self.index = index              <span class="c"># el índice de Pinecone (donde se guarda)</span>
+        self.openai = openai_client     <span class="c"># el cliente de OpenAI (quien vectoriza)</span>
+
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="c"># embed: texto → vectores</span>
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="c"># Recibe una LISTA de textos y devuelve una LISTA de vectores,</span>
+    <span class="c"># en el mismo orden. Ejemplo:</span>
+    <span class="c">#     embed(["hola", "chau"])  →  [[0.01, -0.3, ...], [0.2, 0.05, ...]]</span>
+    <span class="c">#                                   (1536 números)    (1536 números)</span>
+    <span class="c"># Importante: es UNA sola llamada a OpenAI para todo el lote,</span>
+    <span class="c"># no una por texto. Menos llamadas = más rápido y más barato.</span>
+    <span class="k">def</span> <span class="f">embed</span>(self, texts: List[str]) -&gt; List[List[float]]:
+        response = self.openai.embeddings.<span class="f">create</span>(model=EMBEDDING_MODEL, input=texts)
+
+        <span class="c"># response.data es una lista con un resultado por cada texto.</span>
+        <span class="c"># De cada resultado nos quedamos solo con .embedding (el vector).</span>
+        <span class="c"># Esto es una "list comprehension": una forma corta de escribir</span>
+        <span class="c">#     vectores = []</span>
+        <span class="c">#     for item in response.data:</span>
+        <span class="c">#         vectores.append(item.embedding)</span>
+        <span class="k">return</span> [item.embedding <span class="k">for</span> item <span class="k">in</span> response.data]
+
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="c"># create_metadata: arma las "etiquetas" de cada vector</span>
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="c"># Es la ÚNICA función del programa que arma metadatos. Así todos los</span>
+    <span class="c"># vectores tienen las mismas claves, con el mismo formato.</span>
+    <span class="c"># Esto evita el "schema drift" (ver la diapositiva del tema):</span>
+    <span class="c"># que un proceso guarde "ingested_at" y otro "fecha", y el filtro</span>
+    <span class="c"># ignore en silencio a la mitad de los documentos.</span>
     <span class="k">def</span> <span class="f">create_metadata</span>(self, doc_text: str, category: str, author: str) -&gt; Dict[str, Any]:
         <span class="k">return</span> {
-            <span class="s">"category"</span>: category,
-            <span class="s">"author"</span>: author,
-            <span class="c"># isoformat() da un texto estándar: "2026-11-24T08:30:00.123456"</span>
-            <span class="s">"ingested_at"</span>: datetime.now().isoformat(),
-            <span class="s">"char_count"</span>: len(doc_text),   <span class="c"># tamaño del texto en caracteres</span>
+            <span class="c"># El texto original. Pinecone guarda NÚMEROS, no texto: si no lo</span>
+            <span class="c"># ponemos acá, al buscar recuperaríamos un vector que no podemos</span>
+            <span class="c"># leer. Con esto, el resultado ya trae el texto listo para el LLM.</span>
+            <span class="s">"text"</span>: doc_text,
+
+            <span class="c"># Las etiquetas por las que después vamos a poder FILTRAR</span>
+            <span class="s">"category"</span>: category,           <span class="c"># "legal", "hr", "finanzas"</span>
+            <span class="s">"author"</span>: author,               <span class="c"># quién cargó el documento</span>
+
+            <span class="c"># Fecha y hora de carga. isoformat() da un texto estándar:</span>
+            <span class="c">#     "2026-11-24T08:30:00.123456"</span>
+            <span class="c"># Siempre el mismo formato → se puede comparar y ordenar.</span>
+            <span class="s">"ingested_at"</span>: datetime.<span class="f">now</span>().<span class="f">isoformat</span>(),
+
+            <span class="c"># Tamaño del texto en caracteres: sirve, por ejemplo, para</span>
+            <span class="c"># detectar documentos vacíos o demasiado largos.</span>
+            <span class="s">"char_count"</span>: <span class="f">len</span>(doc_text),
         }
 
-    <span class="k">async def</span> <span class="f">process_and_upsert_batches</span>(self, documents: List[Dict], batch_size: int = <span class="w">100</span>) -&gt; int:
-        total = <span class="w">0</span>
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="c"># process_and_upsert_batches: carga TODOS los documentos, de a lotes</span>
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="c"># documents:  lista de diccionarios, cada uno con "text", "category" y "author"</span>
+    <span class="c"># batch_size: cuántos documentos van en cada lote (100 por defecto)</span>
+    <span class="c"># Devuelve:   la cantidad total de vectores subidos</span>
+    <span class="k">def</span> <span class="f">process_and_upsert_batches</span>(self, documents: List[Dict], batch_size: int = <span class="w">100</span>) -&gt; int:
+        total = <span class="w">0</span>   <span class="c"># contador de vectores subidos</span>
 
-        <span class="c"># range(0, 5, 2) da 0, 2, 4: la posición donde empieza cada lote</span>
-        <span class="k">for</span> i <span class="k">in</span> range(<span class="w">0</span>, len(documents), batch_size):
+        <span class="c"># range(inicio, fin, salto) genera números saltando de a "salto".</span>
+        <span class="c"># Con 5 documentos y batch_size=2:  range(0, 5, 2) → 0, 2, 4</span>
+        <span class="c"># "i" NO es un documento: es la POSICIÓN donde empieza cada lote.</span>
+        <span class="k">for</span> i <span class="k">in</span> <span class="f">range</span>(<span class="w">0</span>, <span class="f">len</span>(documents), batch_size):
 
-            <span class="c"># 1. Tomar un trozo de la lista: desde i hasta i + batch_size.</span>
-            <span class="c">#    Si quedan menos documentos, el último lote sale más chico.</span>
+            <span class="c"># 1. Recortar el lote: lista[desde : hasta] (sin incluir "hasta")</span>
+            <span class="c">#      i = 0 → documents[0:2] → documentos 0 y 1</span>
+            <span class="c">#      i = 2 → documents[2:4] → documentos 2 y 3</span>
+            <span class="c">#      i = 4 → documents[4:6] → solo el documento 4</span>
+            <span class="c">#    En la última vuelta "hasta" (6) se pasa del largo (5), pero</span>
+            <span class="c">#    Python NO da error: devuelve lo que haya. Por eso el último</span>
+            <span class="c">#    lote sale más chico.</span>
             batch = documents[i : i + batch_size]
 
-            <span class="c"># 2. Preparar los vectores del lote: id, values y metadata</span>
+            <span class="c"># 2. Sacar los textos del lote y pedir todos sus embeddings juntos.</span>
+            <span class="c">#    [doc["text"] for doc in batch] → ["Contrato de...", "Acuerdo de..."]</span>
+            <span class="c">#    embeddings queda con un vector por documento, en el mismo orden.</span>
+            embeddings = self.<span class="f">embed</span>([doc[<span class="s">"text"</span>] <span class="k">for</span> doc <span class="k">in</span> batch])
+
+            <span class="c"># 3. Armar los vectores en el formato que espera Pinecone:</span>
+            <span class="c">#    un diccionario con "id", "values" y "metadata".</span>
+            <span class="c">#</span>
+            <span class="c">#    zip(batch, embeddings) junta cada documento con SU vector:</span>
+            <span class="c">#        (doc0, vector0), (doc1, vector1)</span>
+            <span class="c">#    enumerate(...) les agrega un número de orden "j" dentro del lote:</span>
+            <span class="c">#        j=0 → (doc0, vector0),  j=1 → (doc1, vector1)</span>
+            <span class="c">#</span>
+            <span class="c">#    El id se calcula con la posición GLOBAL del documento:</span>
+            <span class="c">#        i + j + 1  →  en el lote que empieza en i=2:</span>
+            <span class="c">#                      j=0 → "doc-3",  j=1 → "doc-4"</span>
+            <span class="c">#    (el +1 es para que empiece en "doc-1" y no en "doc-0")</span>
+            <span class="c">#</span>
+            <span class="c">#    El id es FIJO: si corrés el programa otra vez, "doc-1" sigue</span>
+            <span class="c">#    siendo "doc-1", y upsert lo ACTUALIZA en vez de duplicarlo.</span>
             vectors = [
                 {
-                    <span class="s">"id"</span>: str(uuid.uuid4()),   <span class="c"># id único para cada documento</span>
-                    <span class="s">"values"</span>: [<span class="w">0.1</span>] * <span class="w">8</span>,       <span class="c"># embedding simulado (en la vida</span>
-                                               <span class="c"># real lo calcula un modelo)</span>
-                    <span class="s">"metadata"</span>: self.create_metadata(
+                    <span class="s">"id"</span>: <span class="s">f"doc-{i + j + 1}"</span>,       <span class="c"># identificador único</span>
+                    <span class="s">"values"</span>: embedding,            <span class="c"># los 1536 números</span>
+                    <span class="s">"metadata"</span>: self.<span class="f">create_metadata</span>(
                         doc[<span class="s">"text"</span>], doc[<span class="s">"category"</span>], doc[<span class="s">"author"</span>]),
                 }
-                <span class="k">for</span> doc <span class="k">in</span> batch
+                <span class="k">for</span> j, (doc, embedding) <span class="k">in</span> <span class="f">enumerate</span>(<span class="f">zip</span>(batch, embeddings))
             ]
 
-            <span class="c"># 3. UNA llamada a upsert por lote (no una por documento)</span>
-            <span class="k">await</span> self.index.<span class="f">upsert</span>(vectors)
-            total += len(vectors)
+            <span class="c"># 4. Subir el lote completo en UNA llamada a Pinecone.</span>
+            <span class="c">#    upsert = update + insert: si el id existe, lo actualiza;</span>
+            <span class="c">#    si no existe, lo crea.</span>
+            <span class="c">#    namespace=NAMESPACE lo guarda en la partición "documentos",</span>
+            <span class="c">#    sin tocar los vectores de prueba del Ejercicio 1.</span>
+            self.index.<span class="f">upsert</span>(vectors=vectors, namespace=NAMESPACE)
+            <span class="f">print</span>(<span class="s">f"Lote subido: {len(vectors)} vectores"</span>)
+            total += <span class="f">len</span>(vectors)           <span class="c"># igual a: total = total + len(vectors)</span>
 
         <span class="k">return</span> total
 
-    <span class="k">async def</span> <span class="f">search_by_category</span>(self, query_vector: List[float], category: str):
-        <span class="c"># "$eq" = igual a. Solo se buscará entre vectores de esa categoría.</span>
-        <span class="k">return await</span> self.index.<span class="f">query</span>(
-            vector=query_vector,
-            top_k=<span class="w">5</span>,
-            filter={<span class="s">"category"</span>: {<span class="s">"$eq"</span>: category}})
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="c"># search_by_category: busca por significado, pero solo en una categoría</span>
+    <span class="c"># -----------------------------------------------------------------</span>
+    <span class="c"># question: la pregunta del usuario, en texto</span>
+    <span class="c"># category: la categoría donde buscar ("legal", "hr", ...)</span>
+    <span class="c"># top_k:    cuántos resultados queremos como MÁXIMO</span>
+    <span class="k">def</span> <span class="f">search_by_category</span>(self, question: str, category: str, top_k: int = <span class="w">5</span>):
+
+        <span class="c"># 1. Pasar la pregunta a vector con el MISMO modelo que los documentos.</span>
+        <span class="c">#    Si usáramos otro modelo, los vectores estarían en "mapas"</span>
+        <span class="c">#    distintos y la comparación no tendría sentido.</span>
+        <span class="c">#    embed() recibe y devuelve LISTAS: le pasamos [question]</span>
+        <span class="c">#    (una lista de un elemento) y con [0] tomamos el único vector.</span>
+        query_vector = self.<span class="f">embed</span>([question])[<span class="w">0</span>]
+
+        <span class="c"># 2. Buscar en Pinecone los vectores más cercanos a la pregunta.</span>
+        <span class="k">return</span> self.index.<span class="f">query</span>(
+            vector=query_vector,        <span class="c"># el punto de partida de la búsqueda</span>
+            top_k=top_k,                <span class="c"># como máximo, esta cantidad de resultados</span>
+            namespace=NAMESPACE,        <span class="c"># buscar SOLO en la partición "documentos"</span>
+            <span class="c"># Filtro rígido: "$eq" = "igual a". Los vectores cuya categoría</span>
+            <span class="c"># no sea la pedida ni siquiera compiten en la búsqueda.</span>
+            filter={<span class="s">"category"</span>: {<span class="s">"$eq"</span>: category}},
+            <span class="c"># Sin esto, Pinecone devuelve solo id y score. Con True,</span>
+            <span class="c"># también devuelve los metadatos (incluido el texto original).</span>
+            include_metadata=<span class="k">True</span>)
 
 
 <span class="c"># ---------------------------------------------------------------------</span>
 <span class="c"># PROGRAMA PRINCIPAL</span>
 <span class="c"># ---------------------------------------------------------------------</span>
-<span class="k">async def</span> <span class="f">main</span>():
-    index = MockPineconeIndex()
-    pipeline = IngestionPipeline(index)
+<span class="k">def</span> <span class="f">main</span>():
+    <span class="c"># Conectarse a Pinecone con la clave del archivo .env</span>
+    pc = <span class="f">Pinecone</span>(api_key=os.<span class="f">getenv</span>(<span class="s">"PINECONE_API_KEY"</span>))
 
-    <span class="c"># 5 documentos: 2 de legal, 2 de hr y 1 de finanzas</span>
+    <span class="c"># El índice lo creó el Ejercicio 1. Si no existe, no tiene sentido</span>
+    <span class="c"># seguir: SystemExit corta el programa con un mensaje claro</span>
+    <span class="c"># (mejor que un error confuso más adelante).</span>
+    <span class="k">if</span> INDEX_NAME <span class="k">not</span> <span class="k">in</span> pc.<span class="f">list_indexes</span>().<span class="f">names</span>():
+        <span class="k">raise</span> <span class="f">SystemExit</span>(<span class="s">f"No existe '{INDEX_NAME}': corré primero el Ejercicio 1."</span>)
+
+    <span class="c"># Conectarse al índice y armar el pipeline.</span>
+    <span class="c"># OpenAI() sin argumentos busca solo la variable OPENAI_API_KEY.</span>
+    index = pc.<span class="f">Index</span>(INDEX_NAME)
+    pipeline = <span class="f">IngestionPipeline</span>(index, <span class="f">OpenAI</span>())
+
+    <span class="c"># Los datos de prueba: 5 documentos (2 de legal, 2 de hr y 1 de finanzas).</span>
+    <span class="c"># Cada documento es un diccionario con su texto y sus etiquetas.</span>
+    <span class="c"># En un caso real, estos textos saldrían de PDFs o archivos ya cortados</span>
+    <span class="c"># en pedazos (chunks).</span>
     docs = [
-        {<span class="s">"text"</span>: <span class="s">"Contrato de servicios"</span>, <span class="s">"category"</span>: <span class="s">"legal"</span>,    <span class="s">"author"</span>: <span class="s">"User1"</span>},
-        {<span class="s">"text"</span>: <span class="s">"Acuerdo NDA"</span>,           <span class="s">"category"</span>: <span class="s">"legal"</span>,    <span class="s">"author"</span>: <span class="s">"User1"</span>},
-        {<span class="s">"text"</span>: <span class="s">"Política de licencias"</span>, <span class="s">"category"</span>: <span class="s">"hr"</span>,       <span class="s">"author"</span>: <span class="s">"User2"</span>},
-        {<span class="s">"text"</span>: <span class="s">"Manual de onboarding"</span>,  <span class="s">"category"</span>: <span class="s">"hr"</span>,       <span class="s">"author"</span>: <span class="s">"User2"</span>},
-        {<span class="s">"text"</span>: <span class="s">"Presupuesto anual"</span>,     <span class="s">"category"</span>: <span class="s">"finanzas"</span>, <span class="s">"author"</span>: <span class="s">"User3"</span>},
+        {<span class="s">"text"</span>: <span class="s">"Contrato de servicios con el proveedor de hosting, vigente por 12 meses."</span>,
+         <span class="s">"category"</span>: <span class="s">"legal"</span>, <span class="s">"author"</span>: <span class="s">"User1"</span>},
+        {<span class="s">"text"</span>: <span class="s">"Acuerdo de confidencialidad (NDA) firmado con la agencia de diseño."</span>,
+         <span class="s">"category"</span>: <span class="s">"legal"</span>, <span class="s">"author"</span>: <span class="s">"User1"</span>},
+        {<span class="s">"text"</span>: <span class="s">"Política de licencias: 15 días de vacaciones y licencia por estudio."</span>,
+         <span class="s">"category"</span>: <span class="s">"hr"</span>, <span class="s">"author"</span>: <span class="s">"User2"</span>},
+        {<span class="s">"text"</span>: <span class="s">"Manual de onboarding para empleados nuevos del área de ventas."</span>,
+         <span class="s">"category"</span>: <span class="s">"hr"</span>, <span class="s">"author"</span>: <span class="s">"User2"</span>},
+        {<span class="s">"text"</span>: <span class="s">"Presupuesto anual 2026 con el detalle de gastos por departamento."</span>,
+         <span class="s">"category"</span>: <span class="s">"finanzas"</span>, <span class="s">"author"</span>: <span class="s">"User3"</span>},
     ]
 
-    <span class="c"># 1. Ingesta de a 2: tienen que salir 3 lotes (2, 2 y 1)</span>
-    total = <span class="k">await</span> pipeline.process_and_upsert_batches(docs, batch_size=<span class="w">2</span>)
-    <span class="f">print</span>(f<span class="s">"Total procesado: {total}"</span>)
+    <span class="c"># ---- PASO 1: INGESTA --------------------------------------------</span>
+    <span class="c"># batch_size=2 es MUY chico a propósito, para poder ver los lotes.</span>
+    <span class="c"># Con 5 documentos salen 3 lotes: 2 + 2 + 1.</span>
+    <span class="c"># En producción se usan lotes de 100 a 200 vectores.</span>
+    total = pipeline.<span class="f">process_and_upsert_batches</span>(docs, batch_size=<span class="w">2</span>)
+    <span class="f">print</span>(<span class="s">f"Total procesado: {total}"</span>)
 
-    <span class="c"># 2. Búsqueda filtrada por categoría (el vector de consulta es simulado)</span>
-    result = <span class="k">await</span> pipeline.search_by_category([<span class="w">0.1</span>] * <span class="w">8</span>, <span class="s">"legal"</span>)
-    <span class="f">print</span>(f<span class="s">"Resultado: {result}"</span>)
+    <span class="c"># Pinecone tarda unos segundos en dejar "buscables" los vectores nuevos.</span>
+    <span class="c"># Si buscáramos enseguida, podríamos recibir 0 resultados.</span>
+    time.<span class="f">sleep</span>(<span class="w">10</span>)
+
+    <span class="c"># ---- PASO 2: BÚSQUEDA FILTRADA ----------------------------------</span>
+    <span class="c"># Fijate que la pregunta dice "acuerdos de confidencialidad", no "NDA":</span>
+    <span class="c"># la búsqueda es por SIGNIFICADO, no por palabras exactas.</span>
+    pregunta = <span class="s">"¿Qué acuerdos de confidencialidad tenemos firmados?"</span>
+    result = pipeline.<span class="f">search_by_category</span>(pregunta, <span class="s">"legal"</span>)
+
+    <span class="c"># result.matches es la lista de resultados, ordenada del más parecido</span>
+    <span class="c"># al menos parecido. Cada match trae:</span>
+    <span class="c">#     .score    → qué tan parecido es (con coseno: cuanto más alto, mejor)</span>
+    <span class="c">#     .id       → el id que le pusimos ("doc-2")</span>
+    <span class="c">#     .metadata → el diccionario de create_metadata (con el texto)</span>
+    <span class="c"># {match.score:.3f} muestra el número con 3 decimales.</span>
+    <span class="f">print</span>(<span class="s">f"\nPregunta: {pregunta}"</span>)
+    <span class="k">for</span> match <span class="k">in</span> result.matches:
+        <span class="f">print</span>(<span class="s">f"  {match.score:.3f} · {match.id} · {match.metadata['text']}"</span>)
+    <span class="c"># Pedimos top_k=5, pero solo aparecen 2: son los únicos de "legal".</span>
+
+    <span class="c"># ---- PASO 3: ESTADÍSTICAS ---------------------------------------</span>
+    <span class="c"># Ahora el índice tiene DOS namespaces: "dev-environment" (3 vectores</span>
+    <span class="c"># del Ejercicio 1) y "documentos" (5 vectores de este ejercicio).</span>
+    <span class="f">print</span>(index.<span class="f">describe_index_stats</span>())
 
 
+<span class="c"># Esta condición es verdadera solo cuando ejecutás el archivo directamente</span>
+<span class="c"># (python ejercicio2.py). Si otro archivo lo importa para usar la clase</span>
+<span class="c"># IngestionPipeline, main() NO se ejecuta sola.</span>
 <span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
-    asyncio.run(main())</pre>
+    <span class="f">main</span>()</pre>
     </div>
   </div>
 </section>
