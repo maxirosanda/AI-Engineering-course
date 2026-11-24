@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clase: Agentes con LangGraph (grafos, herramientas y memoria)</title>
+<link rel="icon" type="image/png" href="https://framerusercontent.com/images/BYaKbm7V4jKpNmcij4dQFyirq5U.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root{
+    --orange:#ff6329; --orange-d:#e24d14; --cream:#fdfbf6; --ink:#1e0b08; --muted:#6f5f58;
+    --card:#ffffff; --code-bg:#1e0b08; --th-bg:#1e0b08; --btn-dark:#1e0b08; --btn-hover:#3a1b14; --pillbg:#1e0b08; --node-line:#1e0b08; --hover:#f6efe6; --body:#3a2a25; --glow2:#fff1e8; --okbg:#dcf5e6; --badbg:#fde1e1; --line:#eadfd3; --peach:#ffe9de; --ok:#1f9d55; --bad:#d93f3f; --warn:#f5a623;
+  }
+  @media screen{
+  :root[data-theme="dark"]{
+    --cream:#150b08; --ink:#f7ede4; --muted:#b9a89f; --card:#241410; --line:#3a2620; --peach:#3a1e14;
+    --orange-d:#ff9a6b; --ok:#4cd98a; --bad:#ff7a7a; --warn:#f5a623;
+    --code-bg:#0d0605; --th-bg:#3a1e14; --btn-dark:#3a2620; --btn-hover:#523228; --pillbg:#0d0605;
+    --node-line:#6b4a3e; --hover:#2a1913; --body:#e6d8cf; --glow2:#2a150d;
+    --okbg:rgba(76,217,138,.16); --badbg:rgba(255,122,122,.16);
+  }
+}
+html,body{transition:background .3s,color .3s}
+*{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--cream);color:var(--ink);overflow:hidden;
+    font-family:"Plus Jakarta Sans","Poppins","Segoe UI",system-ui,-apple-system,sans-serif}
+  body{display:flex;flex-direction:column}
+
+  .announce{background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;
+    gap:1.2vw;padding:1.1vh 2vw;font-size:clamp(.72rem,1.2vw,1rem);flex-wrap:wrap;text-align:center}
+  .announce .pill-dark{background:var(--pillbg);padding:.35em 1em;border-radius:99px;font-weight:700;color:#fff}
+  .announce .sep{width:1px;height:1.2em;background:rgba(255,255,255,.7)}
+
+  .top{position:relative;display:flex;align-items:center;justify-content:space-between;gap:2vw;
+    padding:1.5vh 3vw;background:var(--cream);border-bottom:1px solid var(--line)}
+  .logo{display:flex;align-items:center;min-width:8rem}
+  .logo img{height:2.2rem;display:block}
+  .wordmark{font-weight:800;font-size:1.7rem;letter-spacing:-.05em;text-transform:uppercase;color:var(--ink)}
+  .wordmark i{font-style:normal;color:var(--orange);margin:0 .04em}
+  nav{display:flex;gap:.3vw;flex-wrap:wrap;justify-content:center}
+  nav button{background:none;border:0;font:inherit;font-weight:500;font-size:clamp(.78rem,1.15vw,1rem);
+    padding:.6em 1em;border-radius:99px;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:.45em;
+    transition:background .2s}
+  nav button::after{content:"";width:12px;height:12px;background:no-repeat center/contain
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236f5f58' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}
+  nav button:hover{background:var(--hover)}
+  nav button.active{background:var(--peach);color:var(--orange-d);font-weight:700}
+  .actions{display:flex;align-items:center;gap:.7vw}
+  .theme svg{width:1.25rem;height:1.25rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .theme .sun{display:none}
+  :root[data-theme="dark"] .theme .sun{display:block}
+  :root[data-theme="dark"] .theme .moon{display:none}
+  .btn-orange{background:var(--orange);color:#fff;border:0;border-radius:99px;padding:.8em 1.7em;
+    font:inherit;font-weight:700;font-size:clamp(.8rem,1.1vw,1rem);cursor:pointer;transition:background .2s}
+  .btn-orange:hover{background:var(--orange-d)}
+  .round{width:2.9rem;height:2.9rem;border-radius:50%;border:0;background:var(--btn-dark);color:#fff;cursor:pointer;
+    font:inherit;font-size:1.1rem;display:flex;align-items:center;justify-content:center}
+  .round:hover{background:var(--btn-hover)}
+  .counter{background:var(--btn-dark);color:#fff;border-radius:99px;padding:0 1.1em;height:2.9rem;
+    display:flex;align-items:center;font-weight:600;font-size:.9rem;white-space:nowrap}
+  .bar{position:absolute;left:0;bottom:-1px;height:4px;background:var(--orange);width:0;transition:width .3s}
+
+  .deck{position:relative;flex:1;min-height:0;
+    background:radial-gradient(circle at 94% 8%,var(--peach) 0,transparent 30%),
+               radial-gradient(circle at 4% 98%,var(--glow2) 0,transparent 26%),var(--cream)}
+  .slide{position:absolute;inset:0;padding:3.5vh 7vw 4vh;display:none;flex-direction:column;
+    justify-content:center;gap:2vh;animation:fade .35s ease;overflow:auto}
+  .slide.active{display:flex}
+  @keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+  h1{font-size:clamp(2.4rem,6vw,4.6rem);line-height:1.05;font-weight:800;letter-spacing:-.04em}
+  h1 .hl{color:var(--orange)}
+  h2{font-size:clamp(1.6rem,3.3vw,2.6rem);font-weight:800;letter-spacing:-.03em;line-height:1.1}
+  h2::after{content:"";display:block;width:3.4rem;height:.32rem;border-radius:99px;background:var(--orange);margin-top:.45em}
+  h3{font-size:clamp(1.05rem,1.8vw,1.45rem);font-weight:700;margin-bottom:.35em;display:flex;align-items:center;gap:.5em}
+  h3::before{content:"";width:.7em;height:.7em;border-radius:50%;background:var(--orange);flex:none}
+  p,li{font-size:clamp(1rem,1.8vw,1.4rem);line-height:1.55;color:var(--body)}
+  b{color:var(--ink)}
+  .sub{color:var(--muted);font-size:clamp(1.05rem,2.1vw,1.6rem)}
+  ul{list-style:none;display:flex;flex-direction:column;gap:1vh}
+  li{padding-left:1.7em;position:relative}
+  li::before{content:"";position:absolute;left:0;top:.45em;width:.9em;height:.9em;border-radius:50%;
+    background:var(--peach);border:2px solid var(--orange)}
+  code{font-family:"JetBrains Mono","Cascadia Code",Consolas,monospace;background:var(--peach);color:var(--orange-d);
+    padding:.08em .45em;border-radius:7px;font-size:.88em;font-weight:500}
+
+  pre{background:var(--code-bg);border-radius:18px;padding:2vh 1.8vw;overflow:auto;
+    font-family:"JetBrains Mono","Cascadia Code",Consolas,monospace;font-size:clamp(.75rem,1.4vw,1.1rem);
+    line-height:1.6;color:#f6ebe2;box-shadow:0 10px 30px rgba(30,11,8,.18)}
+  pre .k{color:#ff8a5c} pre .c{color:#9a8880} pre .s{color:#9be3a5} pre .f{color:#ffc46b} pre .w{color:#ffd98a}
+
+  .grid{display:grid;gap:2vw;grid-template-columns:1fr 1fr;align-items:start}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:2.2vh 1.7vw;
+    box-shadow:0 8px 24px rgba(30,11,8,.06)}
+  .card pre{box-shadow:none;margin-top:.6vh}
+  .card.ok{border-top:5px solid var(--ok)} .card.bad{border-top:5px solid var(--bad)}
+  .tag{display:inline-flex;align-items:center;gap:.4em;font-size:.82rem;font-weight:700;padding:.3em 1em;
+    border-radius:99px;margin-bottom:.7em;background:var(--peach);color:var(--orange-d)}
+  .tag.ok{background:var(--okbg);color:var(--ok)} .tag.ok::before{content:"✓";font-weight:800}
+  .tag.bad{background:var(--badbg);color:var(--bad)} .tag.bad::before{content:"✕";font-weight:800}
+
+  table{border-collapse:separate;border-spacing:0;width:100%;background:var(--card);border:1px solid var(--line);
+    border-radius:16px;overflow:hidden;font-size:clamp(.85rem,1.5vw,1.18rem)}
+  th{background:var(--th-bg);color:#fff;text-align:left;padding:1.1vh 1.2vw;font-weight:700}
+  td{padding:1vh 1.2vw;border-bottom:1px solid var(--line)}
+  tr:last-child td{border-bottom:0}
+  td:first-child{font-family:"JetBrains Mono","Cascadia Code",Consolas,monospace;color:var(--orange-d);font-weight:500}
+
+  .flow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:.8vw}
+  .node{background:var(--card);border:2px solid var(--node-line);border-radius:14px;padding:1.2vh 1.2vw;text-align:center;
+    font-weight:600;font-size:clamp(.8rem,1.45vw,1.15rem)}
+  .node small{display:block;color:var(--muted);font-weight:400;font-size:.75em;margin-top:.3em;
+    font-family:"JetBrains Mono",Consolas,monospace}
+  .node.m{border-color:var(--orange);background:var(--peach)}
+  .node.o{background:var(--orange);border-color:var(--orange);color:#fff}
+  .node.o small{color:rgba(255,255,255,.85)}
+  .arrow{color:var(--orange);font-size:1.8rem;font-weight:800}
+
+  .note{background:var(--peach);border-left:6px solid var(--orange);padding:1.3vh 1.5vw;border-radius:12px;
+    font-size:clamp(.92rem,1.6vw,1.25rem)}
+  .big{font-size:clamp(1.3rem,2.6vw,2rem);text-align:center;font-weight:600;line-height:1.35}
+  .center{text-align:center;align-items:center}
+  .center .tag{margin-bottom:0}
+
+  @media (max-width:900px){nav{display:none}.grid{grid-template-columns:1fr}.slide{justify-content:flex-start}}
+  @media print{
+    html,body{overflow:visible;height:auto}
+    body{display:block}
+    .announce,.top{display:none}
+    .deck{position:static;background:#fff}
+    .slide{position:static;display:flex!important;page-break-after:always;height:100vh;animation:none}
+  }
+
+  /* ===== Ajustes de layout: header compacto, sin scroll en código ===== */
+  .announce{padding:.55vh 2vw;font-size:clamp(.68rem,1vw,.9rem);gap:1vw}
+  .announce .pill-dark{padding:.2em .8em}
+  .top{padding:1vh 2.5vw;gap:1.2vw}
+  .logo{min-width:0}
+  .logo img{height:1.8rem}
+  .wordmark{font-size:1.4rem}
+  nav{flex:1;min-width:0;flex-wrap:nowrap;gap:.1vw}
+  nav button{white-space:nowrap;font-size:clamp(.7rem,.95vw,.9rem);padding:.45em .7em}
+  nav button::after{display:none}
+  .actions{gap:.5vw;flex:none}
+  .btn-orange{white-space:nowrap;padding:.6em 1.2em;font-size:clamp(.78rem,1vw,.95rem)}
+  .round{width:2.4rem;height:2.4rem}
+  .counter{height:2.4rem;white-space:nowrap;padding:0 .9em;font-size:.85rem}
+
+  .slide{padding:2.2vh 6vw 2.8vh;gap:1.5vh;overflow:hidden}
+  .fit{display:flex;flex-direction:column;gap:inherit;align-items:inherit;justify-content:center;transform-origin:top left}
+  p,li{line-height:1.45}
+  pre{overflow:hidden;padding:1.5vh 1.5vw;font-size:clamp(.7rem,1.2vw,1rem);line-height:1.5}
+  .card{padding:1.8vh 1.4vw}
+
+  @media (max-width:1100px){nav{display:none}}
+  @media print{.fit{zoom:1!important;width:100%!important}}
+
+  /* ===== Diapositiva con código largo: scroll interno en vez de achicar ===== */
+  .slide.scroll .fit{height:100%;justify-content:flex-start}
+  .slide.scroll .grid{flex:1;min-height:0}
+  .slide.scroll .card{display:flex;flex-direction:column;min-height:0}
+  .slide.scroll .card pre{flex:1;min-height:0;overflow:auto;font-size:clamp(.78rem,1.15vw,1rem)}
+  @media print{.slide.scroll .card pre{overflow:visible}}
+
+  /* ===== Gráficos SVG (mapa de significados, flechas del coseno) ===== */
+  .viz{display:block;width:100%;height:auto;max-height:36vh}
+  .viz text{font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:15px;fill:var(--ink)}
+  .viz .grp{font-weight:700;fill:var(--muted);font-size:14px;letter-spacing:.04em}
+  .viz .cl{fill:var(--peach);stroke:var(--orange);stroke-width:1.5;stroke-dasharray:5 5;opacity:.7}
+  .viz .pt{fill:var(--orange)}
+  .viz .org{fill:var(--muted)}
+  .viz .near{stroke:var(--ok);stroke-width:3}
+  .viz .far{stroke:var(--bad);stroke-width:2.5;stroke-dasharray:7 6}
+  .viz .t-ok{fill:var(--ok);font-weight:700}
+  .viz .t-bad{fill:var(--bad);font-weight:700}
+  .viz .vec{stroke:var(--ink);stroke-width:3;fill:none}
+  .viz .vec.c{stroke:var(--orange)}
+  .viz .ah{fill:var(--ink)}
+  .viz .ah.c{fill:var(--orange)}
+  .viz .arc-ok{stroke:var(--ok);stroke-width:4;fill:none}
+  .viz .arc-bad{stroke:var(--bad);stroke-width:4;fill:none}
+  .viz .lbl{font-weight:800;font-size:20px}
+  .cap{font-size:clamp(.72rem,1.05vw,.88rem)!important;color:var(--muted);text-align:center;margin-top:.4vh}
+  .c-ok{color:var(--ok);font-weight:700} .c-bad{color:var(--bad);font-weight:700}
+  /* Tablas cuya primera columna es texto común (no código) */
+  table.plain td:first-child{font-family:inherit;color:var(--ink);font-weight:700}
+  .small, .small li{font-size:clamp(.85rem,1.4vw,1.1rem)}
+  /* Código largo: que se desplace dentro de la tarjeta en vez de empujarla */
+  .slide.scroll .fit{width:100%}
+  .slide.scroll .grid, .slide.scroll .card, .slide.scroll .card pre{min-width:0;max-width:100%}
+  /* ===== Botón para volver al índice ===== */
+  a.round{text-decoration:none}
+  .home svg{width:1.2rem;height:1.2rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .logo a{display:flex;align-items:center;text-decoration:none}
+</style>
+<script>try{var q=new URLSearchParams(location.search).get('tema');var t=(q==='dark'||q==='light')?q:localStorage.getItem('curso-theme');if(q==='dark'||q==='light')localStorage.setItem('curso-theme',q);if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+</head>
+<body>
+<div class="announce">
+  <span class="pill-dark">CLASE AGENTES 🤖</span>
+  <span>Una IA que <b style="color:#fff">razona, actúa y recuerda</b> con LangGraph</span>
+  <span class="sep"></span>
+  <span>Clase del 01/12</span>
+</div>
+<header class="top">
+  <div class="logo">
+    <a href="index.html" class="to-index" title="Volver al índice">
+    <img id="ulogo" src="logo.png" alt="" onload="document.getElementById('flogo').style.display='none'" onerror="this.style.display='none'">
+    <span id="flogo" class="wordmark">AGENTES<i>|</i>Class</span>
+    </a>
+  </div>
+  <nav id="nav"></nav>
+  <div class="actions">
+    <a class="round home to-index" href="index.html" title="Volver al índice (I)" aria-label="Volver al índice del curso">
+      <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg>
+    </a>
+    <button class="round theme" id="theme" title="Cambiar tema (T)" aria-label="Cambiar entre modo claro y oscuro">
+      <svg class="moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+    <button class="round" id="prev" title="Anterior">←</button>
+    <button class="btn-orange" id="next">Siguiente →</button>
+    <div class="counter" id="count"></div>
+  </div>
+  <div class="bar" id="bar"></div>
+</header>
+<div class="deck" id="deck">
+
+<!-- 1 · Portada -->
+<section class="slide center">
+  <span class="tag">Clase 5 · Agentes</span>
+  <h1>Agentes con LangGraph<br><span class="hl">grafos, herramientas y memoria</span></h1>
+  <p class="sub">De cadenas lineales a una IA que razona, actúa y recuerda</p>
+  <p class="sub" style="font-size:1rem">Flechas ← → para navegar · F para pantalla completa · T para cambiar tema</p>
+</section>
+
+<!-- 2 · Agenda y 4 conceptos -->
+<section class="slide">
+  <h2>Qué vamos a ver hoy</h2>
+  <p>Todo apunta a <b>una</b> entrega: un agente de razonamiento cíclico con LangGraph. Para lograrla alcanza con dominar <b>4 conceptos núcleo</b>:</p>
+  <div class="grid">
+    <div class="card"><h3>1. Estado (State)</h3><p class="small">La <b>"memoria de trabajo"</b> del grafo: <code>TypedDict</code> / <code>MessagesState</code>.</p></div>
+    <div class="card"><h3>2. Nodos y aristas condicionales</h3><p class="small">Los <b>pasos</b> y las <b>decisiones</b>: "¿sigo o termino?".</p></div>
+    <div class="card"><h3>3. Ciclo ReAct</h3><p class="small">El agente llama a una <b>herramienta</b>, observa el resultado y decide el siguiente paso.</p></div>
+    <div class="card"><h3>4. Persistencia (checkpointer)</h3><p class="small">Guardar el estado para que <b>la conversación no se pierda</b>.</p></div>
+  </div>
+  <p class="note">El resto es <b>profundización</b>: útil para dominar el tema, pero no hace falta memorizar todo para entregar. Además: dos ejemplos resueltos, dos ejercicios y la <b>Pre-entrega 5</b>.</p>
+</section>
+
+<!-- 3 · El problema -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">El problema</span>
+  <h2>Los problemas reales no son lineales</h2>
+  <p>Hasta ahora armamos <b>cadenas</b> (LCEL) y sistemas <b>RAG</b>. Pero los sistemas más avanzados no solo "responden": <b>razonan, iteran y corrigen sus propios errores</b>.</p>
+  <div class="card">
+    <h3>🎧 Un sistema de soporte técnico</h3>
+    <div class="flow" style="margin-top:1vh">
+      <div class="node">Llega un caso</div><span class="arrow">→</span>
+      <div class="node m">¿Qué tan complejo es?</div><span class="arrow">→</span>
+      <div><div class="node" style="margin-bottom:.5vh">Se resuelve</div><div class="node" style="margin-bottom:.5vh">Pide más información</div><div class="node o">Escala a un humano</div></div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="card bad"><span class="tag bad">con if/else y loops de chat</span><p class="small">Código <b>frágil</b>, difícil de depurar y casi imposible de escalar.</p></div>
+    <div class="card ok"><span class="tag ok">con LangGraph</span><p class="small">El flujo se modela como un <b>grafo de estado</b>: pasos, decisiones y vueltas atrás, a la vista.</p></div>
+  </div>
+</section>
+
+<!-- 4 · Cadenas vs grafos -->
+<section class="slide">
+  <h2>De cadenas a grafos</h2>
+  <div class="grid">
+    <div class="card">
+      <span class="tag">cadena (LangChain)</span>
+      <div class="flow" style="justify-content:flex-start">
+        <div class="node">Input</div><span class="arrow">→</span><div class="node">Prompt</div><span class="arrow">→</span><div class="node m">LLM</div><span class="arrow">→</span><div class="node o">Output</div>
+      </div>
+      <p class="small" style="margin-top:1vh">Siempre <b>para adelante</b>. Excelente para flujos predecibles.</p>
+    </div>
+    <div class="card ok">
+      <span class="tag ok">grafo (LangGraph)</span>
+      <div class="flow" style="justify-content:flex-start">
+        <div class="node m">Agente</div><span class="arrow">⇄</span><div class="node">Herramienta</div><span class="arrow">→</span><div class="node o">Respuesta</div>
+      </div>
+      <p class="small" style="margin-top:1vh">Puede <b>volver atrás</b>: "¿terminé, o pruebo otra cosa?".</p>
+    </div>
+  </div>
+  <table>
+    <tr><th>Palabra</th><th>Qué significa</th></tr>
+    <tr><td>grafo</td><td>Un dibujo de <b>cajas</b> (nodos) unidas por <b>flechas</b> (aristas).</td></tr>
+    <tr><td>DAG</td><td>Un grafo <b>sin ciclos</b>: nunca se vuelve a una caja anterior. Así son las cadenas.</td></tr>
+    <tr><td>ciclo</td><td>Una flecha que <b>vuelve</b> a un paso anterior. Es lo que necesita un agente.</td></tr>
+  </table>
+  <p class="note">Lo más importante no es el ciclo en sí, sino la <b>gestión del estado</b>: una "memoria de trabajo" que persiste mientras el agente recorre el grafo.</p>
+</section>
+
+<!-- 5 · Estado -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Concepto 1</span>
+  <h2>El Estado: la memoria compartida del grafo</h2>
+  <div class="card">
+    <h3>🏭 Una línea de ensamblaje</h3>
+    <p class="small">El <b>Estado</b> es el producto que viaja por la cinta. Cada estación (<b>nodo</b>) puede leerlo, modificarlo o agregarle piezas antes de pasarlo a la siguiente.</p>
+  </div>
+<pre><span class="k">from</span> typing <span class="k">import</span> Annotated, TypedDict, List
+<span class="k">from</span> langchain_core.messages <span class="k">import</span> BaseMessage
+<span class="k">from</span> langgraph.graph.message <span class="k">import</span> add_messages
+
+<span class="c"># El esquema de nuestra "memoria de trabajo"</span>
+<span class="k">class</span> <span class="f">AgentState</span>(TypedDict):
+    <span class="c"># El historial de mensajes: el campo más común.</span>
+    <span class="c"># Annotated + un "reducer" definen CÓMO se actualiza este campo</span>
+    messages: Annotated[List[BaseMessage], add_messages]
+    <span class="c"># Campos propios para la lógica de negocio</span>
+    is_escalated: bool
+    current_step: str</pre>
+  <p class="note"><code>TypedDict</code> = un diccionario con <b>claves y tipos declarados</b>. Deja a la vista qué datos están "vivos" en la aplicación.</p>
+</section>
+
+<!-- 6 · Reducers -->
+<section class="slide">
+  <h2>Reducers: cómo se actualiza cada campo</h2>
+  <p>Un nodo <b>no sobrescribe todo el estado</b>: devuelve <b>actualizaciones</b>. Si el estado tiene 10 campos y el nodo devuelve 1, solo cambia ese.</p>
+  <div class="grid">
+    <div class="card bad">
+      <span class="tag bad">sin reducer</span>
+<pre>messages: List[BaseMessage]</pre>
+      <p class="small">Cada vez que un nodo devuelve <code>{"messages": [nuevo]}</code>, la lista anterior <b>desaparece</b>. El agente pierde la conversación.</p>
+    </div>
+    <div class="card ok">
+      <span class="tag ok">con reducer</span>
+<pre>messages: Annotated[List[BaseMessage],
+                    add_messages]</pre>
+      <p class="small"><code>add_messages</code> le dice a LangGraph: "no borres lo anterior, <b>agregá</b> los nuevos al final".</p>
+    </div>
+  </div>
+  <div class="flow">
+    <div class="node">[msg1, msg2]<small>estado actual</small></div><span class="arrow">+</span>
+    <div class="node m">[msg3]<small>lo que devuelve el nodo</small></div><span class="arrow">→</span>
+    <div class="node o">[msg1, msg2, msg3]<small>estado nuevo</small></div>
+  </div>
+  <p class="note"><b>Reducer</b> = la regla que combina el valor viejo con el nuevo. Atajo: <code>MessagesState</code> ya trae el campo <code>messages</code> con <code>add_messages</code> incluido.</p>
+</section>
+
+<!-- 7 · Nodos -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Concepto 2</span>
+  <h2>Nodos: las unidades de trabajo</h2>
+  <p>Un <b>nodo</b> es simplemente una <b>función de Python</b> (síncrona o <code>async</code>): recibe el estado actual y devuelve una actualización.</p>
+<pre><span class="k">async def</span> <span class="f">call_model</span>(state: AgentState):
+    <span class="c"># 1. Leemos información del estado</span>
+    messages = state[<span class="s">"messages"</span>]
+
+    <span class="c"># 2. Hacemos el trabajo (ej.: llamar al LLM)</span>
+    response = <span class="k">await</span> model.ainvoke(messages)
+
+    <span class="c"># 3. Devolvemos SOLO lo que cambia; LangGraph lo fusiona con el estado</span>
+    <span class="k">return</span> {<span class="s">"messages"</span>: [response]}</pre>
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="card"><h3>🧠 Un LLM</h3><p class="small">Lee el historial y decide qué hacer.</p></div>
+    <div class="card"><h3>🔧 Una herramienta</h3><p class="small">Consulta una base de datos o una API.</p></div>
+    <div class="card"><h3>⚙️ Lógica de negocio</h3><p class="small">Valida un JSON, formatea un texto, cambia una bandera.</p></div>
+  </div>
+  <p class="note"><b>Principio de diseño:</b> nodos chicos y con <b>una sola responsabilidad</b>. Un nodo es una unidad de software que se puede probar, no una "caja negra mágica".</p>
+</section>
+
+<!-- 8 · Aristas -->
+<section class="slide">
+  <h2>Aristas: el control del flujo</h2>
+  <p>Si los nodos son las estaciones, las <b>aristas</b> (edges) son las reglas que dicen <b>adónde va el producto</b> al salir de cada una.</p>
+  <div class="grid">
+    <div class="card">
+      <h3>Arista directa</h3>
+      <p class="small">"Cuando termines en A, andá <b>siempre</b> a B."</p>
+<pre>workflow.<span class="f">add_edge</span>(
+    <span class="s">"limpiar_texto"</span>,
+    <span class="s">"analizar_sentimiento"</span>)</pre>
+    </div>
+    <div class="card ok">
+      <span class="tag ok">la clave de los agentes</span>
+      <h3>Arista condicional</h3>
+      <p class="small">El flujo <b>se bifurca</b> según lo que diga una <b>función de enrutamiento</b>.</p>
+    </div>
+  </div>
+<pre><span class="k">def</span> <span class="f">route_after_analysis</span>(state: AgentState):
+    <span class="k">if</span> state[<span class="s">"sentiment"</span>] == <span class="s">"negative"</span>:   <span class="c"># sentimiento negativo: escalamos</span>
+        <span class="k">return</span> <span class="s">"human_support"</span>
+    <span class="k">return</span> <span class="s">"end"</span>                           <span class="c"># si no, terminamos</span>
+
+workflow.<span class="f">add_conditional_edges</span>(
+    <span class="s">"analizar_sentimiento"</span>,               <span class="c"># desde qué nodo sale</span>
+    route_after_analysis,                 <span class="c"># la función que decide</span>
+    {<span class="s">"human_support"</span>: <span class="s">"nodo_humano"</span>, <span class="s">"end"</span>: END})  <span class="c"># respuesta -&gt; destino</span></pre>
+  <p class="note">Una arista condicional puede <b>devolver el flujo a un nodo anterior</b>: así nace un <b>ciclo</b>. Por ejemplo, un "Validador" que manda la respuesta de vuelta al "Escritor" para corregirla.</p>
+</section>
+
+<!-- 9 · Compilar + metáfora -->
+<section class="slide">
+  <h2>Compilar el grafo</h2>
+  <p>Con los nodos y las aristas definidos, el grafo se <b>compila</b> (<code>app = workflow.compile()</code>). Al compilar, LangGraph valida que:</p>
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="card"><h3>Hay una entrada</h3><p class="small">Un punto de partida: <code>START</code>.</p></div>
+    <div class="card"><h3>Hay una salida</h3><p class="small">Todos los caminos pueden llegar a <code>END</code>.</p></div>
+    <div class="card"><h3>Nada suelto</h3><p class="small">No hay nodos aislados.</p></div>
+  </div>
+  <p class="small"><b>📖 La metáfora: un libro de "Elige tu propia aventura"</b></p>
+  <table class="plain">
+    <tr><th>En el libro</th><th>En LangGraph</th></tr>
+    <tr><td>Lo que el lector recuerda (su inventario, su salud)</td><td>El <b>Estado</b></td></tr>
+    <tr><td>El contenido de cada página</td><td>Los <b>nodos</b></td></tr>
+    <tr><td>"Si abrís la puerta, andá a la página 45"</td><td>Las <b>aristas</b></td></tr>
+    <tr><td>"Si tenés la llave dorada, andá a la página 100; si no, a la 20"</td><td>Las <b>aristas condicionales</b> (deciden mirando el estado)</td></tr>
+  </table>
+</section>
+
+<!-- 10 · Errores del grafo -->
+<section class="slide">
+  <h2>Errores comunes al diseñar el grafo</h2>
+  <table class="plain">
+    <tr><th>Error</th><th>Qué pasa</th><th>Mejor práctica</th></tr>
+    <tr><td>Cargar el estado con cosas innecesarias</td><td>Meter clientes de bases de datos o conexiones de red dentro del <code>State</code>.</td><td>El estado guarda solo <b>datos</b> que se comparten o persisten. La infraestructura va en la configuración o en la clase que envuelve al grafo.</td></tr>
+    <tr><td>Nodos demasiado grandes</td><td>Un nodo que llama al LLM, procesa, limpia y guarda: se pierde la <b>granularidad</b>.</td><td>Un nodo para el LLM y otro para el post-proceso. Así cabe una arista condicional en el medio: "¿salió bien o reintento?".</td></tr>
+    <tr><td>Olvidar el reducer</td><td>Con <code>messages: List[BaseMessage]</code> a secas, cada nodo <b>borra</b> el historial anterior.</td><td>Siempre <code>Annotated[List[BaseMessage], add_messages]</code> (o heredar de <code>MessagesState</code>).</td></tr>
+  </table>
+</section>
+
+<!-- 11 · Ejemplo 1: diagrama -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Ejemplo resuelto 1</span>
+  <h2>Un grafo de soporte con ciclo y escalado</h2>
+  <p>Un grafo mínimo que <b>busca</b> una solución, <b>reintenta</b> si no la encuentra y <b>escala a un humano</b> tras 3 intentos. Corre sin API keys: la búsqueda está simulada.</p>
+  <div class="flow">
+    <div class="node">START</div><span class="arrow">→</span>
+    <div class="node m">search<small>busca (simulado)</small></div><span class="arrow">→</span>
+    <div class="node">route<small>¿qué hago ahora?</small></div><span class="arrow">→</span>
+    <div><div class="node o" style="margin-bottom:.5vh">"end" → END<small>si está resuelto</small></div><div class="node" style="margin-bottom:.5vh">"escalate" → human → END<small>si ya van 3 intentos</small></div><div class="node m">"retry" → vuelve a search<small>si no: este es el CICLO</small></div></div>
+  </div>
+  <table>
+    <tr><th>Campo del estado</th><th>Para qué sirve</th></tr>
+    <tr><td>query</td><td>La consulta del usuario</td></tr>
+    <tr><td>attempts</td><td>Cuántas veces se buscó (para cortar el ciclo)</td></tr>
+    <tr><td>solved</td><td>Si ya se encontró una solución</td></tr>
+    <tr><td>escalated</td><td>Si el caso pasó a un humano</td></tr>
+  </table>
+  <p class="note">Cuando dibujes un grafo: <b>nodos = cajas</b>, <code>add_conditional_edges</code> = <b>la bifurcación</b>, y <code>"retry"</code> = <b>la flecha que vuelve hacia atrás</b>.</p>
+</section>
+
+<!-- 12 · Ejemplo 1: código -->
+<section class="slide scroll">
+  <h2>Ejemplo 1: código completo y comentado</h2>
+  <div class="grid" style="grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);align-items:stretch">
+    <div class="card" style="padding:1vh .8vw"><span class="tag">Código completo · copiá, pegá y corré · sin API keys</span>
+<pre><span class="c"># =====================================================================</span>
+<span class="c"># EJEMPLO 1: grafo de soporte con ciclo de reintento y escalado</span>
+<span class="c"># =====================================================================</span>
+<span class="c"># Antes de correrlo (una sola vez), en la terminal:</span>
+<span class="c">#     pip install langgraph</span>
+<span class="c"># =====================================================================</span>
+<span class="k">from</span> typing <span class="k">import</span> TypedDict
+<span class="k">from</span> langgraph.graph <span class="k">import</span> StateGraph, START, END
+
+<span class="c"># 1. El Estado: la "memoria de trabajo" que viaja por el grafo</span>
+<span class="k">class</span> <span class="f">SupportState</span>(TypedDict):
+    query: str        <span class="c"># la consulta del usuario</span>
+    attempts: int     <span class="c"># cuántas veces buscamos</span>
+    solved: bool      <span class="c"># ¿ya hay solución?</span>
+    escalated: bool   <span class="c"># ¿pasó a un humano?</span>
+
+<span class="c"># 2. Nodo: busca en la base de conocimiento (simulado)</span>
+<span class="k">def</span> <span class="f">search_knowledge</span>(state: SupportState) -&gt; dict:
+    intento = state[<span class="s">"attempts"</span>] + <span class="w">1</span>
+    <span class="c"># Simulamos que recién encuentra la solución en el 2.º intento</span>
+    encontrado = intento &gt;= <span class="w">2</span>
+    <span class="f">print</span>(f<span class="s">"[search] intento {intento} -&gt; {'resuelto' if encontrado else 'sin resultado'}"</span>)
+    <span class="c"># Devuelve SOLO los campos que cambian, no el estado completo</span>
+    <span class="k">return</span> {<span class="s">"attempts"</span>: intento, <span class="s">"solved"</span>: encontrado}
+
+<span class="c"># 3. Nodo: escala el caso a un humano</span>
+<span class="k">def</span> <span class="f">human_support</span>(state: SupportState) -&gt; dict:
+    <span class="f">print</span>(<span class="s">"[human] caso escalado a soporte humano"</span>)
+    <span class="k">return</span> {<span class="s">"escalated"</span>: <span class="k">True</span>}
+
+<span class="c"># 4. Función de enrutamiento: mira el estado y decide el camino.</span>
+<span class="c">#    Devuelve una "etiqueta"; el grafo la traduce a un nodo destino.</span>
+<span class="k">def</span> <span class="f">route</span>(state: SupportState) -&gt; str:
+    <span class="k">if</span> state[<span class="s">"solved"</span>]:
+        <span class="k">return</span> <span class="s">"end"</span>
+    <span class="k">if</span> state[<span class="s">"attempts"</span>] &gt;= <span class="w">3</span>:    <span class="c"># freno: corta el ciclo para no quedar infinito</span>
+        <span class="k">return</span> <span class="s">"escalate"</span>
+    <span class="k">return</span> <span class="s">"retry"</span>                <span class="c"># vuelve a 'search' -&gt; esto crea el CICLO</span>
+
+<span class="c"># 5. Construcción del grafo</span>
+workflow = StateGraph(SupportState)          <span class="c"># un grafo que usa este estado</span>
+workflow.<span class="f">add_node</span>(<span class="s">"search"</span>, search_knowledge)  <span class="c"># nombre del nodo + su función</span>
+workflow.<span class="f">add_node</span>(<span class="s">"human"</span>, human_support)
+
+workflow.<span class="f">add_edge</span>(START, <span class="s">"search"</span>)            <span class="c"># el grafo arranca en 'search'</span>
+workflow.<span class="f">add_conditional_edges</span>(
+    <span class="s">"search"</span>,                                <span class="c"># al salir de 'search'...</span>
+    route,                                   <span class="c"># ...esta función decide...</span>
+    {<span class="s">"end"</span>: END, <span class="s">"escalate"</span>: <span class="s">"human"</span>, <span class="s">"retry"</span>: <span class="s">"search"</span>},  <span class="c"># ...etiqueta -&gt; destino</span>
+)
+workflow.<span class="f">add_edge</span>(<span class="s">"human"</span>, END)               <span class="c"># después del humano, termina</span>
+
+app = workflow.<span class="f">compile</span>()                     <span class="c"># valida y deja el grafo listo</span>
+
+<span class="c"># 6. Ejecución: le pasamos el estado inicial</span>
+final = app.<span class="f">invoke</span>(
+    {<span class="s">"query"</span>: <span class="s">"No puedo iniciar sesión"</span>, <span class="s">"attempts"</span>: <span class="w">0</span>, <span class="s">"solved"</span>: <span class="k">False</span>, <span class="s">"escalated"</span>: <span class="k">False</span>}
+)
+<span class="f">print</span>(final)</pre>
+    </div>
+  </div>
+</section>
+
+<!-- 13 · Ejemplo 1: salida -->
+<section class="slide">
+  <h2>Ejemplo 1: qué deberías ver</h2>
+<pre>[search] intento 1 -&gt; sin resultado
+[search] intento 2 -&gt; resuelto
+{'query': 'No puedo iniciar sesión', 'attempts': 2, 'solved': True, 'escalated': False}</pre>
+  <ul class="small">
+    <li>El estado arranca con <code>attempts=0</code>. Cada nodo devuelve <b>solo lo que cambia</b>; LangGraph lo fusiona.</li>
+    <li><code>START → search</code>: el primer intento no encuentra solución (<code>solved=False</code>).</li>
+    <li><code>route</code> lee el estado: no está resuelto y no llegó a 3 intentos → <code>"retry"</code> → vuelve a <code>search</code>. <b>Ese retorno es el ciclo</b> que una cadena lineal no puede hacer.</li>
+    <li>En el segundo intento <code>solved=True</code>: <code>route</code> devuelve <code>"end"</code> y el grafo termina sin escalar.</li>
+  </ul>
+  <p class="note"><b>Probá el otro camino:</b> cambiá <code>encontrado = intento &gt;= 2</code> por <code>encontrado = False</code>. Tras 3 intentos, la ruta pasa a <code>"escalate"</code> → nodo <code>human</code> → <code>escalated=True</code> → END.</p>
+</section>
+
+<!-- 14 · Ejemplo 2: diagrama y salida -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Ejemplo resuelto 2</span>
+  <h2>Bucle de reflexión: escritor ↔ crítico</h2>
+  <p>El otro ciclo clásico de los agentes: un nodo <b>escribe</b>, otro <b>evalúa</b>, y se repite hasta alcanzar la calidad buscada.</p>
+  <div class="flow">
+    <div class="node">START</div><span class="arrow">→</span>
+    <div class="node m">escritor<small>mejora el borrador</small></div><span class="arrow">→</span>
+    <div class="node">crítico<small>punto de decisión</small></div><span class="arrow">→</span>
+    <div><div class="node o" style="margin-bottom:.5vh">"aprobado" → END<small>score ≥ 8</small></div><div class="node" style="margin-bottom:.5vh">"rendirse" → END<small>4 revisiones: freno de seguridad</small></div><div class="node m">"revisar" → vuelve a escritor<small>el CICLO de reflexión</small></div></div>
+  </div>
+<pre>[escritor] revisión 1 -&gt; score 3
+[escritor] revisión 2 -&gt; score 6
+[escritor] revisión 3 -&gt; score 9
+Final tras 3 revisiones | score 9
+Borrador sobre 'onboarding de usuarios' (calidad 9/10)</pre>
+  <div class="grid">
+    <div class="card"><h3>Ejemplo 1: reintento</h3><p class="small">Se repite porque algo <b>falló</b>.</p></div>
+    <div class="card"><h3>Ejemplo 2: mejora iterativa</h3><p class="small">Se repite para <b>mejorar</b>: el sistema se autocritica. Es la base de los agentes "reflexivos".</p></div>
+  </div>
+</section>
+
+<!-- 15 · Ejemplo 2: código -->
+<section class="slide scroll">
+  <h2>Ejemplo 2: código completo y comentado</h2>
+  <div class="grid" style="grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);align-items:stretch">
+    <div class="card" style="padding:1vh .8vw"><span class="tag">Código completo · copiá, pegá y corré · sin API keys</span>
+<pre><span class="c"># =====================================================================</span>
+<span class="c"># EJEMPLO 2: bucle de reflexión (escritor &lt;-&gt; crítico)</span>
+<span class="c"># =====================================================================</span>
+<span class="k">from</span> typing <span class="k">import</span> TypedDict
+<span class="k">from</span> langgraph.graph <span class="k">import</span> StateGraph, START, END
+
+<span class="c"># 1. Estado: el borrador, su puntaje y cuántas veces lo revisamos</span>
+<span class="k">class</span> <span class="f">WriteState</span>(TypedDict):
+    tema: str
+    borrador: str
+    score: int
+    revisiones: int
+
+<span class="c"># 2. Nodo escritor: genera o mejora el borrador.</span>
+<span class="c">#    Simulado: cada vuelta suma 3 puntos de calidad.</span>
+<span class="c">#    (En un agente real, acá iría la llamada al LLM.)</span>
+<span class="k">def</span> <span class="f">escribir</span>(state: WriteState) -&gt; dict:
+    nuevo_score = state[<span class="s">"score"</span>] + <span class="w">3</span>
+    <span class="f">print</span>(f<span class="s">"[escritor] revisión {state['revisiones'] + 1} -&gt; score {nuevo_score}"</span>)
+    <span class="k">return</span> {
+        <span class="s">"borrador"</span>: f<span class="s">"Borrador sobre '{state['tema']}' (calidad {nuevo_score}/10)"</span>,
+        <span class="s">"score"</span>: nuevo_score,
+        <span class="s">"revisiones"</span>: state[<span class="s">"revisiones"</span>] + <span class="w">1</span>,
+    }
+
+<span class="c"># 3. Nodo crítico: no modifica el estado (devuelve {}).</span>
+<span class="c">#    Es solo el punto donde la arista condicional evalúa.</span>
+<span class="k">def</span> <span class="f">criticar</span>(state: WriteState) -&gt; dict:
+    <span class="k">return</span> {}
+
+<span class="c"># 4. Enrutamiento: ¿aprobamos, nos rendimos o seguimos revisando?</span>
+<span class="k">def</span> <span class="f">route</span>(state: WriteState) -&gt; str:
+    <span class="k">if</span> state[<span class="s">"score"</span>] &gt;= <span class="w">8</span>:
+        <span class="k">return</span> <span class="s">"aprobado"</span>
+    <span class="k">if</span> state[<span class="s">"revisiones"</span>] &gt;= <span class="w">4</span>:   <span class="c"># tope: sin esto, un borrador que nunca</span>
+        <span class="k">return</span> <span class="s">"rendirse"</span>           <span class="c"># llega a 8 generaría un loop infinito</span>
+    <span class="k">return</span> <span class="s">"revisar"</span>                <span class="c"># vuelve al escritor -&gt; CICLO de reflexión</span>
+
+<span class="c"># 5. Construcción del grafo</span>
+g = StateGraph(WriteState)
+g.<span class="f">add_node</span>(<span class="s">"escritor"</span>, escribir)
+g.<span class="f">add_node</span>(<span class="s">"critico"</span>, criticar)
+
+g.<span class="f">add_edge</span>(START, <span class="s">"escritor"</span>)
+g.<span class="f">add_edge</span>(<span class="s">"escritor"</span>, <span class="s">"critico"</span>)     <span class="c"># siempre: escritor -&gt; crítico</span>
+g.<span class="f">add_conditional_edges</span>(
+    <span class="s">"critico"</span>,
+    route,
+    {<span class="s">"aprobado"</span>: END, <span class="s">"rendirse"</span>: END, <span class="s">"revisar"</span>: <span class="s">"escritor"</span>},
+)
+
+app = g.<span class="f">compile</span>()
+
+<span class="c"># 6. Ejecución</span>
+final = app.<span class="f">invoke</span>({<span class="s">"tema"</span>: <span class="s">"onboarding de usuarios"</span>, <span class="s">"borrador"</span>: <span class="s">""</span>, <span class="s">"score"</span>: <span class="w">0</span>, <span class="s">"revisiones"</span>: <span class="w">0</span>})
+<span class="f">print</span>(f<span class="s">"Final tras {final['revisiones']} revisiones | score {final['score']}"</span>)
+<span class="f">print</span>(final[<span class="s">"borrador"</span>])</pre>
+    </div>
+  </div>
+</section>
+
+<!-- 16 · Tool calling: qué es -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Tool calling</span>
+  <h2>Tool calling: darle "manos" al modelo</h2>
+  <p class="big">Un LLM solo es como <b>un cerebro brillante en una habitación sin ventanas</b>: razona, pero no puede interactuar con el mundo.</p>
+  <div class="flow">
+    <div class="node m">LLM<small>"quiero ejecutar multiply(5, 2)"</small></div><span class="arrow">→</span>
+    <div class="node">Tu aplicación<small>valida y ejecuta el código real</small></div><span class="arrow">→</span>
+    <div class="node o">Resultado: 10<small>vuelve al LLM</small></div>
+  </div>
+  <div class="grid">
+    <div class="card bad"><span class="tag bad">lo que NO pasa</span><p class="small">El modelo <b>no ejecuta</b> código Python por su cuenta.</p></div>
+    <div class="card ok"><span class="tag ok">lo que sí pasa</span><p class="small">El modelo <b>genera un pedido estructurado</b> (JSON): qué función quiere y con qué parámetros. <b>Tu app</b> lo intercepta y lo ejecuta.</p></div>
+  </div>
+  <p class="note">Como en un restaurante: el cliente (LLM) <b>pide</b> un plato del menú; la cocina (tu código) es la que <b>cocina</b>.</p>
+</section>
+
+<!-- 17 · Contrato -->
+<section class="slide">
+  <h2>El "contrato" de una herramienta</h2>
+  <table>
+    <tr><th>Pilar</th><th>Qué es</th></tr>
+    <tr><td>Nombre</td><td>Identificador único, como <code>get_stock_price</code>.</td></tr>
+    <tr><td>Descripción</td><td>Explica para qué sirve. <b>El LLM decide si usarla leyendo esto.</b></td></tr>
+    <tr><td>Esquema de entrada</td><td>Qué parámetros recibe: tipos y cuáles son obligatorios.</td></tr>
+    <tr><td>Esquema de salida</td><td>Qué devuelve.</td></tr>
+  </table>
+<pre><span class="k">from</span> pydantic <span class="k">import</span> BaseModel, Field
+<span class="k">from</span> langchain_core.tools <span class="k">import</span> tool
+
+<span class="k">class</span> <span class="f">CalculatorInput</span>(BaseModel):            <span class="c"># esquema de entrada, validado por Pydantic</span>
+    a: int = Field(description=<span class="s">"Primer número"</span>)
+    b: int = Field(description=<span class="s">"Segundo número"</span>)
+
+<span class="k">@tool</span>(args_schema=CalculatorInput)          <span class="c"># convierte la función en herramienta</span>
+<span class="k">def</span> <span class="f">multiply</span>(a: int, b: int) -&gt; int:         <span class="c"># el nombre de la función = nombre de la tool</span>
+    <span class="s">"""Multiplica dos números enteros."""</span>     <span class="c"># el docstring = la descripción</span>
+    <span class="k">return</span> a * b</pre>
+  <p class="note">No se puede confiar en que el LLM mande siempre datos correctos: <b>Pydantic valida</b> los tipos <b>antes</b> de que el código toque tu infraestructura.</p>
+</section>
+
+<!-- 18 · Ciclo de ejecución -->
+<section class="slide">
+  <h2>El ciclo de ejecución, paso a paso</h2>
+  <table class="plain">
+    <tr><th>Paso</th><th>Qué pasa</th></tr>
+    <tr><td>1 · Razonamiento</td><td>El LLM recibe el prompt y las definiciones de las herramientas. Decide que necesita <code>multiply</code>.</td></tr>
+    <tr><td>2 · Tool call</td><td>Responde con un objeto especial: <code>tool_calls: [{name: 'multiply', args: {a: 5, b: 2}}]</code>.</td></tr>
+    <tr><td>3 · Ejecución (local)</td><td>Tu servidor detecta el pedido, valida los argumentos con Pydantic y ejecuta <code>multiply(5, 2)</code>.</td></tr>
+    <tr><td>4 · Observación</td><td>El resultado (<code>10</code>) vuelve al LLM en un mensaje nuevo, con el rol <code>tool</code>.</td></tr>
+    <tr><td>5 · Respuesta final</td><td>El LLM procesa el <code>10</code> y le responde al usuario: "El resultado es 10".</td></tr>
+  </table>
+  <div class="flow">
+    <div class="node m">LLM</div><span class="arrow">→</span>
+    <div class="node">tool_calls</div><span class="arrow">→</span>
+    <div class="node">tu código ejecuta</div><span class="arrow">→</span>
+    <div class="node">mensaje "tool"</div><span class="arrow">→</span>
+    <div class="node m">LLM</div><span class="arrow">→</span>
+    <div class="node o">respuesta</div>
+  </div>
+  <p class="note">Para que el modelo conozca las herramientas, se las "atás" con <code>model.bind_tools(tools)</code>.</p>
+</section>
+
+<!-- 19 · Errores y seguridad -->
+<section class="slide">
+  <h2>Errores comunes y seguridad</h2>
+  <table class="plain">
+    <tr><th>Error</th><th>Qué pasa</th><th>Qué hacer</th></tr>
+    <tr><td>Confundir invocación con ejecución</td><td>El LLM <b>pide</b>; quien ejecuta es tu código. Lo que pida se va a ejecutar con <b>tus</b> permisos.</td><td>Herramientas con <b>permisos mínimos</b> (least privilege). Nunca ejecutar SQL crudo generado por el LLM sin validarlo.</td></tr>
+    <tr><td>Descripciones ambiguas</td><td>Con "Busca datos", el modelo no sabe cuándo usarla y falla.</td><td>Ser específico: "Busca precios de acciones en tiempo real para empresas del S&amp;P 500".</td></tr>
+    <tr><td>Ignorar los errores</td><td>Si la herramienta falla (ej.: timeout) y la excepción se escapa, <b>se cae todo el agente</b>.</td><td>Capturar el error y devolverlo <b>como texto</b> al LLM: así puede explicarle al usuario qué pasó o probar otra estrategia.</td></tr>
+  </table>
+  <p class="note">Si el agente no usa la herramienta que esperabas, el problema casi siempre está en el <b>docstring</b>, no en la lógica del grafo.</p>
+</section>
+
+<!-- 20 · Ejercicio 1: consigna -->
+<section class="slide">
+  <h2>Ejercicio 1: qué tenés que hacer</h2>
+  <p><b>Objetivo:</b> definir una herramienta que un agente pueda usar, con un contrato de entrada validado por Pydantic y una descripción clara para que el LLM sepa cuándo llamarla.</p>
+  <table class="plain">
+    <tr><th>Paso</th><th>Qué hacer</th></tr>
+    <tr><td>1</td><td>Definir <code>SearchInput(BaseModel)</code> con <code>query: str</code> y <code>limit: int = 3</code>. Usar <code>Field(..., description="...")</code> en los dos, y en <code>limit</code> agregar <code>ge=1, le=10</code>.</td></tr>
+    <tr><td>2</td><td>Decorar la función con <code>@tool(args_schema=SearchInput)</code> y dejarla asíncrona (<code>async def</code>).</td></tr>
+    <tr><td>3</td><td>Reescribir el <b>docstring</b>: qué busca, cuándo conviene usarla y qué devuelve. Es la instrucción que lee el LLM.</td></tr>
+    <tr><td>4</td><td>Adentro, llamar a <code>await db.similarity_search(query, k=limit)</code> dentro de un <code>try</code>. Si falla, devolver un <b>mensaje de error</b> en lugar de cortar la ejecución.</td></tr>
+  </table>
+<pre><span class="c"># Para probar (no hace falta ningún LLM): agregá esto al final</span>
+<span class="k">import</span> asyncio
+<span class="f">print</span>(search_knowledge_base.name, search_knowledge_base.args)
+<span class="f">print</span>(asyncio.run(search_knowledge_base.ainvoke({<span class="s">"query"</span>: <span class="s">"políticas de vacaciones"</span>, <span class="s">"limit"</span>: <span class="w">2</span>})))</pre>
+</section>
+
+<!-- 21 · Ejercicio 1: salida -->
+<section class="slide">
+  <h2>Ejercicio 1: qué deberías ver</h2>
+<pre style="white-space:pre-wrap">search_knowledge_base {'query': {'description': 'Texto a buscar en la base de conocimiento, en lenguaje natural', 'title': 'Query', 'type': 'string'}, 'limit': {'default': 3, 'description': 'Cantidad máxima de resultados a devolver (entre 1 y 10)', 'maximum': 10, 'minimum': 1, 'title': 'Limit', 'type': 'integer'}}
+['Resultado para políticas de vacaciones']
+Error de validación: Input should be less than or equal to 10</pre>
+  <ul class="small">
+    <li>El nombre <code>search_knowledge_base</code> y los argumentos <code>query</code> y <code>limit</code> <b>con sus descripciones</b>: eso es lo que "lee" el LLM.</li>
+    <li>El resultado <code>['Resultado para políticas de vacaciones']</code>: la herramienta se ejecutó de verdad, sin ningún modelo.</li>
+    <li>Con <code>"limit": 50</code> aparece un <b>error de validación</b>: Pydantic frena el pedido <b>antes</b> de que llegue a la base.</li>
+  </ul>
+  <p class="note">El texto exacto del esquema puede variar un poco según la versión de LangChain y Pydantic.</p>
+</section>
+
+<!-- 22 · Ejercicio 1: solución -->
+<section class="slide scroll">
+  <h2>Ejercicio 1: solución completa y comentada</h2>
+  <div class="grid" style="grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);align-items:stretch">
+    <div class="card" style="padding:1vh .8vw"><span class="tag">Código completo · copiá, pegá y corré · sin API keys</span>
+<pre><span class="c"># =====================================================================</span>
+<span class="c"># EJERCICIO 1: una herramienta con contrato validado por Pydantic</span>
+<span class="c"># =====================================================================</span>
+<span class="c"># Antes de correrlo (una sola vez), en la terminal:</span>
+<span class="c">#     pip install langchain-core pydantic</span>
+<span class="c"># =====================================================================</span>
+<span class="k">import</span> asyncio
+<span class="k">from</span> typing <span class="k">import</span> List
+<span class="k">from</span> pydantic <span class="k">import</span> BaseModel, Field, ValidationError
+<span class="k">from</span> langchain_core.tools <span class="k">import</span> tool
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># PASO 1: el esquema de entrada (el "contrato" de los parámetros)</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">class</span> <span class="f">SearchInput</span>(BaseModel):
+    <span class="c"># "..." significa: campo obligatorio, sin valor por defecto.</span>
+    <span class="c"># La description la lee el LLM para saber qué poner en cada parámetro.</span>
+    query: str = Field(
+        ..., description=<span class="s">"Texto a buscar en la base de conocimiento, en lenguaje natural"</span>)
+    <span class="c"># Valor por defecto 3. ge=1 y le=10: tiene que estar entre 1 y 10.</span>
+    <span class="c"># Así el LLM no puede pedir 5.000 resultados por error.</span>
+    limit: int = Field(
+        <span class="w">3</span>, ge=<span class="w">1</span>, le=<span class="w">10</span>, description=<span class="s">"Cantidad máxima de resultados a devolver (entre 1 y 10)"</span>)
+
+
+<span class="c"># Simulación de una base de datos vectorial (viene dada en el ejercicio)</span>
+<span class="k">class</span> <span class="f">MockVectorDB</span>:
+    <span class="k">async def</span> <span class="f">similarity_search</span>(self, query: str, k: int):
+        <span class="k">return</span> [f<span class="s">"Resultado para {query}"</span>]
+
+db = MockVectorDB()
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># PASOS 2, 3 y 4: la herramienta</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># @tool convierte la función en una herramienta de LangChain.</span>
+<span class="c"># args_schema asocia el esquema: los argumentos se validan ANTES de ejecutar.</span>
+<span class="k">@tool</span>(args_schema=SearchInput)
+<span class="k">async def</span> <span class="f">search_knowledge_base</span>(query: str, limit: int = <span class="w">3</span>) -&gt; List[str] | str:
+    <span class="s">"""Busca información en la base de conocimiento interna de la empresa
+    (políticas, manuales y documentación).
+
+    Usala cuando el usuario pregunte por procedimientos, normas o datos
+    internos que no sean de conocimiento general.
+
+    Devuelve una lista con los fragmentos de texto más relevantes.
+    """</span>
+    <span class="c"># El docstring de arriba es la "instrucción" que lee el LLM:</span>
+    <span class="c"># qué busca, cuándo usarla y qué devuelve.</span>
+    <span class="k">try</span>:
+        <span class="c"># async + await: la búsqueda no bloquea el event loop</span>
+        <span class="k">return await</span> db.similarity_search(query, k=limit)
+    <span class="k">except</span> Exception <span class="k">as</span> e:
+        <span class="c"># No dejamos escapar la excepción: devolvemos el error como texto.</span>
+        <span class="c"># Así el LLM puede explicarle al usuario qué pasó o probar otra cosa.</span>
+        <span class="k">return</span> f<span class="s">"Error al buscar en la base de conocimiento: {e}"</span>
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># PRUEBA: no hace falta ningún LLM</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="c"># El "contrato" tal como lo ve el modelo: nombre y argumentos</span>
+    <span class="f">print</span>(search_knowledge_base.name, search_knowledge_base.args)
+
+    <span class="c"># Ejecutamos la herramienta a mano, como lo haría el agente</span>
+    <span class="f">print</span>(asyncio.run(search_knowledge_base.ainvoke(
+        {<span class="s">"query"</span>: <span class="s">"políticas de vacaciones"</span>, <span class="s">"limit"</span>: <span class="w">2</span>})))
+
+    <span class="c"># limit=50 rompe el contrato (máximo 10): Pydantic lo rechaza</span>
+    <span class="k">try</span>:
+        asyncio.run(search_knowledge_base.ainvoke({<span class="s">"query"</span>: <span class="s">"vacaciones"</span>, <span class="s">"limit"</span>: <span class="w">50</span>}))
+    <span class="k">except</span> ValidationError <span class="k">as</span> e:
+        <span class="f">print</span>(<span class="s">"Error de validación:"</span>, e.errors()[<span class="w">0</span>][<span class="s">"msg"</span>])</pre>
+    </div>
+  </div>
+</section>
+
+<!-- 23 · ReAct -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Concepto 3</span>
+  <h2>El ciclo ReAct: razonar + actuar</h2>
+  <p><b>ReAct</b> (<b>Re</b>asoning + <b>Act</b>ing) es el patrón estándar de los agentes autónomos. A diferencia de una cadena, es <b>cíclico</b>.</p>
+  <div class="flow">
+    <div class="node m">Pensar<small>¿qué necesito?</small></div><span class="arrow">→</span>
+    <div class="node">Actuar<small>elegir herramienta y parámetros</small></div><span class="arrow">→</span>
+    <div class="node">Observar<small>leer el resultado</small></div><span class="arrow">↺</span>
+    <div class="node o">Responder<small>cuando ya no hacen falta herramientas</small></div>
+  </div>
+  <p>En LangGraph se arma con <b>dos nodos y una arista condicional</b>:</p>
+  <div class="flow">
+    <div class="node">START</div><span class="arrow">→</span>
+    <div class="node m">agent<small>el LLM con las tools</small></div><span class="arrow">→</span>
+    <div class="node">tools_condition<small>¿pidió una herramienta?</small></div><span class="arrow">→</span>
+    <div><div class="node" style="margin-bottom:.5vh">sí → tools → vuelve a agent<small>ToolNode ejecuta</small></div><div class="node o">no → END</div></div>
+  </div>
+  <p class="note">El LLM puede usar <b>tres herramientas distintas</b> antes de responder. Cada vuelta suma mensajes al historial (el pedido y la observación). <code>ToolNode</code> y <code>tools_condition</code> ya vienen hechos en <code>langgraph.prebuilt</code>.</p>
+</section>
+
+<!-- 24 · Checkpoints -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Concepto 4</span>
+  <h2>Checkpoints: la "caja negra" del agente</h2>
+  <p>Un agente puede fallar <b>a mitad de una ejecución de 10 pasos</b> (un error de red, un timeout). Sin persistencia, se pierde todo el razonamiento, los resultados parciales y la plata gastada en tokens.</p>
+  <div class="grid">
+    <div class="card">
+      <h3>📸 Checkpointer</h3>
+      <p class="small">Guarda una <b>"foto" del estado</b> después de cada nodo, como el <b>guardado automático</b> de un videojuego.</p>
+    </div>
+    <div class="card">
+      <h3>🧵 thread_id</h3>
+      <p class="small">El identificador de la <b>conversación</b>. Mismo <code>thread_id</code> = se carga el último estado guardado y se sigue desde ahí.</p>
+    </div>
+  </div>
+<pre>memory = MemorySaver()                          <span class="c"># guarda en memoria (para probar)</span>
+app = workflow.<span class="f">compile</span>(checkpointer=memory)
+
+config = {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"sesion-1"</span>}}
+<span class="k">await</span> app.<span class="f">ainvoke</span>({<span class="s">"messages"</span>: [...]}, config)    <span class="c"># mismo config = misma conversación</span></pre>
+  <table class="plain">
+    <tr><th>Qué permite</th><th>Para qué</th></tr>
+    <tr><td>Reanudar</td><td>Si el proceso se corta, se retoma con el mismo <code>thread_id</code>.</td></tr>
+    <tr><td>Time travel</td><td>"Volver atrás" a un estado anterior para depurar.</td></tr>
+    <tr><td>Human-in-the-loop</td><td>Pausar y pedir <b>aprobación humana</b> antes de un nodo crítico.</td></tr>
+  </table>
+</section>
+
+<!-- 25 · Ejercicio 2: consigna -->
+<section class="slide">
+  <h2>Ejercicio 2: qué tenés que hacer</h2>
+  <p><b>Objetivo:</b> un agente del clima que <b>razone</b>, <b>use una herramienta</b> y <b>recuerde la conversación</b> entre llamadas gracias a un checkpointer.</p>
+  <table class="plain">
+    <tr><th>Paso</th><th>Qué hacer</th></tr>
+    <tr><td>1</td><td><code>tool_node = ToolNode(tools)</code>.</td></tr>
+    <tr><td>2</td><td><code>model = ChatOpenAI(model="gpt-4o-mini", temperature=0).bind_tools(tools)</code>.</td></tr>
+    <tr><td>3</td><td>En <code>call_model</code>: <code>response = await model.ainvoke(state["messages"])</code> y <code>return {"messages": [response]}</code>.</td></tr>
+    <tr><td>4</td><td>Agregar los nodos <code>"agent"</code> (<code>call_model</code>) y <code>"tools"</code> (<code>tool_node</code>), y las aristas <code>START → agent</code>, <code>agent → tools_condition</code> (con <code>add_conditional_edges</code>) y <code>tools → agent</code>.</td></tr>
+    <tr><td>5</td><td><code>memory = MemorySaver()</code> y <code>app = workflow.compile(checkpointer=memory)</code>.</td></tr>
+    <tr><td>6</td><td>En <code>main()</code>, ejecutar dos veces <code>await app.ainvoke(...)</code> con el <b>mismo</b> <code>thread_config</code>: primero <code>"¿Qué tiempo hace en Madrid?"</code> y después <code>"¿Y en Londres?"</code>. Imprimir el último mensaje de cada respuesta.</td></tr>
+  </table>
+  <p class="note"><b>Qué necesitás:</b> la variable de entorno <code>OPENAI_API_KEY</code> (este ejercicio sí llama al modelo) y <code>pip install langgraph langchain-openai</code>. El estado tiene que usar <code>Annotated[list[BaseMessage], add_messages]</code>.</p>
+</section>
+
+<!-- 26 · Ejercicio 2: salida -->
+<section class="slide">
+  <h2>Ejercicio 2: qué deberías ver</h2>
+<pre>--- Paso 1 ---
+En Madrid está soleado, con 22°C.
+
+--- Paso 2 ---
+En Londres también está soleado, con 22°C.</pre>
+  <p class="small" style="color:var(--muted)">El texto exacto cambia en cada corrida: lo escribe el modelo. La herramienta simulada siempre devuelve "Soleado, 22°C".</p>
+  <ul class="small">
+    <li><b>Paso 1:</b> el agente llama a <code>get_weather</code> y responde con el clima de Madrid.</li>
+    <li><b>Paso 2:</b> entiende que "¿Y en Londres?" pregunta por el clima <b>porque recuerda el paso 1</b>, y vuelve a usar la herramienta.</li>
+    <li>El grafo termina solo cuando el LLM decide que <b>no hay más herramientas que llamar</b>.</li>
+  </ul>
+  <p class="note"><b>Comprobá la memoria:</b> cambiá el <code>thread_id</code> en el paso 2. El agente ya no sabe de qué le estás hablando: es otra conversación, sin historial.</p>
+</section>
+
+<!-- 27 · Ejercicio 2: solución -->
+<section class="slide scroll">
+  <h2>Ejercicio 2: solución completa y comentada</h2>
+  <div class="grid" style="grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);align-items:stretch">
+    <div class="card" style="padding:1vh .8vw"><span class="tag">Código completo · necesita OPENAI_API_KEY</span>
+<pre><span class="c"># =====================================================================</span>
+<span class="c"># EJERCICIO 2: agente ReAct con memoria (checkpointer)</span>
+<span class="c"># =====================================================================</span>
+<span class="c"># Antes de correrlo (una sola vez), en la terminal:</span>
+<span class="c">#     pip install langgraph langchain-openai</span>
+<span class="c"># y guardá tu clave en la variable de entorno OPENAI_API_KEY.</span>
+<span class="c"># =====================================================================</span>
+<span class="k">import</span> asyncio
+<span class="k">from</span> typing <span class="k">import</span> Annotated, TypedDict
+<span class="k">from</span> langchain_openai <span class="k">import</span> ChatOpenAI
+<span class="k">from</span> langchain_core.messages <span class="k">import</span> BaseMessage, HumanMessage
+<span class="k">from</span> langgraph.graph <span class="k">import</span> StateGraph, START, END
+<span class="k">from</span> langgraph.graph.message <span class="k">import</span> add_messages
+<span class="k">from</span> langgraph.prebuilt <span class="k">import</span> ToolNode, tools_condition
+<span class="k">from</span> langgraph.checkpoint.memory <span class="k">import</span> MemorySaver
+
+
+<span class="c"># 1. El Estado del agente.</span>
+<span class="c">#    add_messages hace que el historial sea ACUMULATIVO: cada nodo agrega</span>
+<span class="c">#    mensajes en vez de pisar los anteriores.</span>
+<span class="k">class</span> <span class="f">AgentState</span>(TypedDict):
+    messages: Annotated[list[BaseMessage], add_messages]
+
+
+<span class="c"># 2. Herramientas. El docstring es lo que lee el LLM para decidir usarla.</span>
+<span class="k">def</span> <span class="f">get_weather</span>(location: str):
+    <span class="s">"""Consulta el clima actual."""</span>
+    <span class="k">return</span> <span class="s">"Soleado, 22°C"</span>     <span class="c"># simulado: siempre devuelve lo mismo</span>
+
+tools = [get_weather]
+
+<span class="c">#    ToolNode: un nodo ya hecho que ejecuta la herramienta que pidió el LLM</span>
+<span class="c">#    y devuelve el resultado como un mensaje con rol "tool".</span>
+tool_node = ToolNode(tools)
+
+<span class="c"># 3. El modelo. bind_tools le "presenta" las herramientas: a partir de acá</span>
+<span class="c">#    el LLM puede responder con texto o con un pedido de herramienta.</span>
+model = ChatOpenAI(model=<span class="s">"gpt-4o-mini"</span>, temperature=<span class="w">0</span>).<span class="f">bind_tools</span>(tools)
+
+
+<span class="c"># 4. Nodo del agente: le manda TODO el historial al modelo</span>
+<span class="k">async def</span> <span class="f">call_model</span>(state: AgentState):
+    response = <span class="k">await</span> model.ainvoke(state[<span class="s">"messages"</span>])
+    <span class="c"># Devolvemos solo el mensaje nuevo; add_messages lo suma al historial</span>
+    <span class="k">return</span> {<span class="s">"messages"</span>: [response]}
+
+
+<span class="c"># 5. Construcción del grafo: el ciclo ReAct</span>
+workflow = StateGraph(AgentState)
+workflow.<span class="f">add_node</span>(<span class="s">"agent"</span>, call_model)   <span class="c"># piensa</span>
+workflow.<span class="f">add_node</span>(<span class="s">"tools"</span>, tool_node)    <span class="c"># actúa</span>
+
+workflow.<span class="f">add_edge</span>(START, <span class="s">"agent"</span>)
+
+<span class="c">#    tools_condition mira el último mensaje del agente:</span>
+<span class="c">#      - si pidió una herramienta -&gt; va al nodo "tools"</span>
+<span class="c">#      - si no                    -&gt; va a END (el grafo termina)</span>
+workflow.<span class="f">add_conditional_edges</span>(<span class="s">"agent"</span>, tools_condition)
+
+<span class="c">#    Después de ejecutar la herramienta, SIEMPRE vuelve al agente para que</span>
+<span class="c">#    observe el resultado. Esta arista cierra el ciclo.</span>
+workflow.<span class="f">add_edge</span>(<span class="s">"tools"</span>, <span class="s">"agent"</span>)
+
+<span class="c"># 6. Persistencia: MemorySaver guarda una "foto" del estado tras cada nodo.</span>
+<span class="c">#    (Vive en memoria: se pierde al cerrar el programa. Sirve para probar.)</span>
+memory = MemorySaver()
+app = workflow.<span class="f">compile</span>(checkpointer=memory)
+
+
+<span class="k">async def</span> <span class="f">main</span>():
+    <span class="c"># thread_id identifica la conversación. Mismo id = misma memoria.</span>
+    <span class="c"># recursion_limit: techo de pasos, para que un ciclo no gaste de más.</span>
+    thread_config = {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"sesion-1"</span>}, <span class="s">"recursion_limit"</span>: <span class="w">10</span>}
+
+    <span class="c"># Paso 1: una pregunta completa</span>
+    r1 = <span class="k">await</span> app.<span class="f">ainvoke</span>(
+        {<span class="s">"messages"</span>: [HumanMessage(content=<span class="s">"¿Qué tiempo hace en Madrid?"</span>)]},
+        thread_config)
+    <span class="f">print</span>(<span class="s">"--- Paso 1 ---"</span>)
+    <span class="f">print</span>(r1[<span class="s">"messages"</span>][-<span class="w">1</span>].content)   <span class="c"># [-1] = el último mensaje (la respuesta)</span>
+
+    <span class="c"># Paso 2: una pregunta que solo se entiende con el contexto anterior.</span>
+    <span class="c"># Mandamos SOLO el mensaje nuevo: el checkpointer carga el resto.</span>
+    r2 = <span class="k">await</span> app.<span class="f">ainvoke</span>(
+        {<span class="s">"messages"</span>: [HumanMessage(content=<span class="s">"¿Y en Londres?"</span>)]},
+        thread_config)
+    <span class="f">print</span>(<span class="s">"\n--- Paso 2 ---"</span>)
+    <span class="f">print</span>(r2[<span class="s">"messages"</span>][-<span class="w">1</span>].content)
+
+    <span class="c"># Para comprobar la memoria: usá otro thread_id en el paso 2</span>
+    <span class="c"># (ej.: "sesion-2"). El agente ya no va a saber de qué le hablás.</span>
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    asyncio.run(main())</pre>
+    </div>
+  </div>
+</section>
+
+<!-- 28 · Resumen -->
+<section class="slide">
+  <h2>Resumen de la clase</h2>
+  <ul>
+    <li><b>LangGraph</b> extiende LangChain con grafos que admiten <b>ciclos</b> y un <b>estado</b> compartido.</li>
+    <li><b>Estado:</b> la única fuente de verdad, tipada, que viaja por el grafo. Los nodos devuelven <b>actualizaciones</b>; los <b>reducers</b> (<code>add_messages</code>) definen cómo se combinan.</li>
+    <li><b>Nodos:</b> funciones chicas que transforman el estado. <b>Aristas:</b> las reglas de navegación; las <b>condicionales</b> permiten bifurcar y volver atrás.</li>
+    <li>Todo ciclo necesita un <b>freno</b>: un contador en el estado o un <code>recursion_limit</code>.</li>
+    <li><b>Tool calling:</b> el LLM <b>pide</b>, tu código <b>ejecuta</b>. Contrato con Pydantic, docstring claro, errores devueltos como texto.</li>
+    <li><b>ReAct:</b> pensar → actuar → observar, con <code>ToolNode</code> y <code>tools_condition</code>.</li>
+    <li><b>Checkpointer + thread_id:</b> el agente recuerda la conversación y puede reanudarse.</li>
+  </ul>
+  <p class="sub">¿Preguntas?</p>
+</section>
+
+<!-- 29 · Pre-entrega 5: criterios -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Pre-entrega 5</span>
+  <h2>Agente de razonamiento cíclico con memoria persistente</h2>
+  <p>Para aprobar, tu agente tiene que cumplir <b>cuatro criterios</b>:</p>
+  <div class="grid">
+    <div class="card"><h3>🤖 Autonomía</h3><p class="small">Decide <b>por sí mismo</b> cuándo llamar a una herramienta, según el pedido del usuario. Sin rutas manuales <code>if/else</code>.</p></div>
+    <div class="card"><h3>🔁 Ciclo de retorno</h3><p class="small">Si una herramienta devuelve un error o información incompleta, hace un <b>segundo intento</b> o pide aclaraciones.</p></div>
+    <div class="card"><h3>🧵 Resiliencia de estado</h3><p class="small">Con un <code>thread_id</code>, <b>recuerda</b> las interacciones previas de la misma sesión.</p></div>
+    <div class="card"><h3>✨ Código limpio</h3><p class="small">Python 3.12, <b>type hints</b> y gestión asíncrona con <code>asyncio</code>.</p></div>
+  </div>
+<pre>Usuario: "¿Cuántos pedidos tuvo el cliente 102 y cuál fue el total?"
+→ El agente decide usar la herramienta: buscar_pedidos(cliente_id=102)
+→ La herramienta devuelve: { "pedidos": 3, "total": 14500 }
+→ El agente razona: ya tiene los datos → responde.
+Respuesta: "El cliente 102 tuvo 3 pedidos por un total de $14.500."</pre>
+  <p class="note">Esa es la <b>traza</b> esperada (va en el repo como log o <code>.json</code>). Con el mismo <code>thread_id</code>, si después preguntás "¿y el último?", el agente recuerda el contexto.</p>
+</section>
+
+<!-- 30 · Pre-entrega 5: pasos -->
+<section class="slide">
+  <h2>Pre-entrega 5: paso a paso</h2>
+  <table class="plain">
+    <tr><th>Paso</th><th>Qué hacer</th></tr>
+    <tr><td>1 · Proyecto</td><td>Un proyecto <b>Python 3.12+</b> con Poetry o venv.</td></tr>
+    <tr><td>2 · Herramientas</td><td>Al menos <b>una herramienta propia</b> con <code>@tool</code> que simule una operación de base de datos o una búsqueda técnica, con un docstring <b>muy descriptivo</b>.</td></tr>
+    <tr><td>3 · Estado y grafo</td><td>Un <code>StateGraph</code> cuyo estado herede de <code>MessagesState</code>, con nodo de modelo + nodo de herramientas, unidos por <code>tools_condition</code>.</td></tr>
+    <tr><td>4 · Modelo</td><td>Un LLM (OpenAI o Anthropic) vinculado a las herramientas con <code>llm.bind_tools()</code>.</td></tr>
+    <tr><td>5 · Persistencia</td><td>Un checkpointer con <code>SqliteSaver</code> (para desarrollo local) y <code>thread_id</code>.</td></tr>
+    <tr><td>6 · Prueba</td><td>Una ejecución donde el agente llame a la herramienta <b>al menos dos veces</b> para llegar a la conclusión (razonamiento multi-paso), con <code>recursion_limit</code> definido.</td></tr>
+    <tr><td>7 · Repo</td><td>Subir a un repositorio <b>público</b>, sin API keys (variables de entorno).</td></tr>
+  </table>
+<pre><span class="c"># SqliteSaver en un entorno async: pip install langgraph-checkpoint-sqlite</span>
+<span class="k">from</span> langgraph.checkpoint.sqlite.aio <span class="k">import</span> AsyncSqliteSaver
+
+<span class="k">async with</span> AsyncSqliteSaver.<span class="f">from_conn_string</span>(<span class="s">"checkpoints.db"</span>) <span class="k">as</span> memory:
+    app = workflow.<span class="f">compile</span>(checkpointer=memory)   <span class="c"># el estado queda en un archivo</span>
+    config = {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"cliente-102"</span>}, <span class="s">"recursion_limit"</span>: <span class="w">10</span>}
+    <span class="k">await</span> app.<span class="f">ainvoke</span>({<span class="s">"messages"</span>: [(<span class="s">"user"</span>, <span class="s">"¿Cuántos pedidos tuvo el cliente 102?"</span>)]}, config)</pre>
+</section>
+
+<!-- 31 · Qué entregar -->
+<section class="slide">
+  <h2>Qué tenés que entregar</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Un repositorio público de GitHub con:</h3>
+      <ul class="small">
+        <li><code>StateGraph</code> (estado que hereda de <code>MessagesState</code>) con nodo de modelo, nodo de herramientas y <code>tools_condition</code></li>
+        <li>Al menos <b>1 herramienta</b> con <code>@tool</code> y docstring descriptivo</li>
+        <li>Persistencia con <code>SqliteSaver</code> + <code>thread_id</code></li>
+        <li>Prueba <b>multi-paso</b> (herramienta invocada ≥ 2 veces) y <code>recursion_limit</code></li>
+        <li>Un ejemplo de <b>traza</b> de ejecución (<code>.json</code> o log)</li>
+        <li><b>README</b>: cómo levantar el entorno</li>
+      </ul>
+    </div>
+    <div class="card bad">
+      <span class="tag bad">errores a evitar</span>
+      <ul class="small">
+        <li><b>Descripciones vagas:</b> si el agente no usa la herramienta que esperás, el error suele estar en el docstring, no en el grafo.</li>
+        <li><b>Bucles infinitos:</b> no definir <code>recursion_limit</code>. Poné siempre un techo (ej.: 10 pasos) para evitar costos inesperados.</li>
+        <li><b>Estado sucio:</b> olvidar que el estado <b>se acumula</b>. Si el contexto crece demasiado, limpiá o resumí mensajes.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note"><b>Es código, no un informe:</b> no hace falta ningún documento aparte; la traza va como log o JSON dentro del repo. Y las API keys <b>no se suben</b>: van en un <code>.env</code> que esté en <code>.gitignore</code>.</p>
+</section>
+
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  // Envuelve el contenido de cada slide para poder escalarlo como un bloque
+  slides.forEach(sl => {
+    const w = document.createElement('div');
+    w.className = 'fit';
+    while (sl.firstChild) w.appendChild(sl.firstChild);
+    sl.appendChild(w);
+  });
+  function fit(sl){
+    const w = sl.querySelector('.fit');
+    if (!w) return;
+    if (sl.classList.contains('scroll')) { w.style.zoom = 1; return; }
+    const overflows = () => sl.scrollHeight > sl.clientHeight + 1 || sl.scrollWidth > sl.clientWidth + 1 ||
+      [...w.querySelectorAll('pre,table')].some(e => e.scrollWidth > e.clientWidth + 1);
+    let z = 1;
+    const apply = () => { w.style.zoom = z; };
+    apply();
+    while (overflows() && z > 0.4) { z = Math.round((z - 0.03) * 100) / 100; apply(); }
+  }
+  const sections = [
+    {name:'Por qué grafos',  from:2,  to:4},
+    {name:'Estado y nodos',  from:5,  to:10},
+    {name:'Ejemplos',        from:11, to:15},
+    {name:'Tool calling',    from:16, to:19},
+    {name:'Ejercicio 1',     from:20, to:22},
+    {name:'ReAct y memoria', from:23, to:24},
+    {name:'Ejercicio 2',     from:25, to:28},
+    {name:'Pre-entrega 5',   from:29, to:31}
+  ];
+  let i = 0;
+  const bar = document.getElementById('bar'), count = document.getElementById('count');
+  const nav = document.getElementById('nav');
+  sections.forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = s.name;
+    b.onclick = () => show(s.from - 1);
+    nav.appendChild(b);
+  });
+  function show(n){
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    fit(slides[i]);
+    bar.style.width = ((i + 1) / slides.length * 100) + '%';
+    count.textContent = (i + 1) + ' / ' + slides.length;
+    [...nav.children].forEach((b, k) => b.classList.toggle('active', i + 1 >= sections[k].from && i + 1 <= sections[k].to));
+    try { history.replaceState(null, '', '#' + (i + 1)); } catch(e) {}
+  }
+  function toggleTheme(){
+    const root = document.documentElement;
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('curso-theme', next); } catch(e) {}
+  }
+  document.getElementById('theme').onclick = toggleTheme;
+  // Lleva el tema actual (claro/oscuro) a la página siguiente
+  function conTema(url){
+    const t = document.documentElement.getAttribute('data-theme') || 'light';
+    return url + (url.includes('?') ? '&' : '?') + 'tema=' + t;
+  }
+  document.querySelectorAll('a.to-index').forEach(a => a.addEventListener('click', ev => {
+    ev.preventDefault(); location.href = conTema('index.html');
+  }));
+  document.getElementById('prev').onclick = () => show(i - 1);
+  document.getElementById('next').onclick = () => show(i + 1);
+  document.addEventListener('keydown', e => {
+    if (['ArrowRight','PageDown',' '].includes(e.key)) { e.preventDefault(); show(i + 1); }
+    else if (['ArrowLeft','PageUp'].includes(e.key)) { e.preventDefault(); show(i - 1); }
+    else if (e.key.toLowerCase() === 't') toggleTheme();
+    else if (e.key.toLowerCase() === 'i') location.href = conTema('index.html');
+    else if (e.key === 'Home') show(0);
+    else if (e.key === 'End') show(slides.length - 1);
+    else if (e.key.toLowerCase() === 'f') {
+      document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+    }
+  });
+  show((parseInt(location.hash.slice(1)) || 1) - 1);
+  window.addEventListener('resize', () => fit(slides[i]));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fit(slides[i]));
+</script>
+</body>
+</html>

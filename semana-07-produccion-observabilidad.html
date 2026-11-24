@@ -1,0 +1,1003 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clase: IA en producción (observabilidad, FastAPI + Redis y Human-in-the-Loop)</title>
+<link rel="icon" type="image/png" href="https://framerusercontent.com/images/BYaKbm7V4jKpNmcij4dQFyirq5U.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root{
+    --orange:#ff6329; --orange-d:#e24d14; --cream:#fdfbf6; --ink:#1e0b08; --muted:#6f5f58;
+    --card:#ffffff; --code-bg:#1e0b08; --th-bg:#1e0b08; --btn-dark:#1e0b08; --btn-hover:#3a1b14; --pillbg:#1e0b08; --node-line:#1e0b08; --hover:#f6efe6; --body:#3a2a25; --glow2:#fff1e8; --okbg:#dcf5e6; --badbg:#fde1e1; --line:#eadfd3; --peach:#ffe9de; --ok:#1f9d55; --bad:#d93f3f; --warn:#f5a623;
+  }
+  @media screen{
+  :root[data-theme="dark"]{
+    --cream:#150b08; --ink:#f7ede4; --muted:#b9a89f; --card:#241410; --line:#3a2620; --peach:#3a1e14;
+    --orange-d:#ff9a6b; --ok:#4cd98a; --bad:#ff7a7a; --warn:#f5a623;
+    --code-bg:#0d0605; --th-bg:#3a1e14; --btn-dark:#3a2620; --btn-hover:#523228; --pillbg:#0d0605;
+    --node-line:#6b4a3e; --hover:#2a1913; --body:#e6d8cf; --glow2:#2a150d;
+    --okbg:rgba(76,217,138,.16); --badbg:rgba(255,122,122,.16);
+  }
+}
+html,body{transition:background .3s,color .3s}
+*{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--cream);color:var(--ink);overflow:hidden;
+    font-family:"Plus Jakarta Sans","Poppins","Segoe UI",system-ui,-apple-system,sans-serif}
+  body{display:flex;flex-direction:column}
+
+  .announce{background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;
+    gap:1.2vw;padding:1.1vh 2vw;font-size:clamp(.72rem,1.2vw,1rem);flex-wrap:wrap;text-align:center}
+  .announce .pill-dark{background:var(--pillbg);padding:.35em 1em;border-radius:99px;font-weight:700;color:#fff}
+  .announce .sep{width:1px;height:1.2em;background:rgba(255,255,255,.7)}
+
+  .top{position:relative;display:flex;align-items:center;justify-content:space-between;gap:2vw;
+    padding:1.5vh 3vw;background:var(--cream);border-bottom:1px solid var(--line)}
+  .logo{display:flex;align-items:center;min-width:8rem}
+  .logo img{height:2.2rem;display:block}
+  .wordmark{font-weight:800;font-size:1.7rem;letter-spacing:-.05em;text-transform:uppercase;color:var(--ink)}
+  .wordmark i{font-style:normal;color:var(--orange);margin:0 .04em}
+  nav{display:flex;gap:.3vw;flex-wrap:wrap;justify-content:center}
+  nav button{background:none;border:0;font:inherit;font-weight:500;font-size:clamp(.78rem,1.15vw,1rem);
+    padding:.6em 1em;border-radius:99px;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:.45em;
+    transition:background .2s}
+  nav button::after{content:"";width:12px;height:12px;background:no-repeat center/contain
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236f5f58' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}
+  nav button:hover{background:var(--hover)}
+  nav button.active{background:var(--peach);color:var(--orange-d);font-weight:700}
+  .actions{display:flex;align-items:center;gap:.7vw}
+  .theme svg{width:1.25rem;height:1.25rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .theme .sun{display:none}
+  :root[data-theme="dark"] .theme .sun{display:block}
+  :root[data-theme="dark"] .theme .moon{display:none}
+  .btn-orange{background:var(--orange);color:#fff;border:0;border-radius:99px;padding:.8em 1.7em;
+    font:inherit;font-weight:700;font-size:clamp(.8rem,1.1vw,1rem);cursor:pointer;transition:background .2s}
+  .btn-orange:hover{background:var(--orange-d)}
+  .round{width:2.9rem;height:2.9rem;border-radius:50%;border:0;background:var(--btn-dark);color:#fff;cursor:pointer;
+    font:inherit;font-size:1.1rem;display:flex;align-items:center;justify-content:center}
+  .round:hover{background:var(--btn-hover)}
+  .counter{background:var(--btn-dark);color:#fff;border-radius:99px;padding:0 1.1em;height:2.9rem;
+    display:flex;align-items:center;font-weight:600;font-size:.9rem;white-space:nowrap}
+  .bar{position:absolute;left:0;bottom:-1px;height:4px;background:var(--orange);width:0;transition:width .3s}
+
+  .deck{position:relative;flex:1;min-height:0;
+    background:radial-gradient(circle at 94% 8%,var(--peach) 0,transparent 30%),
+               radial-gradient(circle at 4% 98%,var(--glow2) 0,transparent 26%),var(--cream)}
+  .slide{position:absolute;inset:0;padding:3.5vh 7vw 4vh;display:none;flex-direction:column;
+    justify-content:center;gap:2vh;animation:fade .35s ease;overflow:auto}
+  .slide.active{display:flex}
+  @keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+  h1{font-size:clamp(2.4rem,6vw,4.6rem);line-height:1.05;font-weight:800;letter-spacing:-.04em}
+  h1 .hl{color:var(--orange)}
+  h2{font-size:clamp(1.6rem,3.3vw,2.6rem);font-weight:800;letter-spacing:-.03em;line-height:1.1}
+  h2::after{content:"";display:block;width:3.4rem;height:.32rem;border-radius:99px;background:var(--orange);margin-top:.45em}
+  h3{font-size:clamp(1.05rem,1.8vw,1.45rem);font-weight:700;margin-bottom:.35em;display:flex;align-items:center;gap:.5em}
+  h3::before{content:"";width:.7em;height:.7em;border-radius:50%;background:var(--orange);flex:none}
+  p,li{font-size:clamp(1rem,1.8vw,1.4rem);line-height:1.55;color:var(--body)}
+  b{color:var(--ink)}
+  .sub{color:var(--muted);font-size:clamp(1.05rem,2.1vw,1.6rem)}
+  ul{list-style:none;display:flex;flex-direction:column;gap:1vh}
+  li{padding-left:1.7em;position:relative}
+  li::before{content:"";position:absolute;left:0;top:.45em;width:.9em;height:.9em;border-radius:50%;
+    background:var(--peach);border:2px solid var(--orange)}
+  code{font-family:"JetBrains Mono","Cascadia Code",Consolas,monospace;background:var(--peach);color:var(--orange-d);
+    padding:.08em .45em;border-radius:7px;font-size:.88em;font-weight:500}
+
+  pre{background:var(--code-bg);border-radius:18px;padding:2vh 1.8vw;overflow:auto;
+    font-family:"JetBrains Mono","Cascadia Code",Consolas,monospace;font-size:clamp(.75rem,1.4vw,1.1rem);
+    line-height:1.6;color:#f6ebe2;box-shadow:0 10px 30px rgba(30,11,8,.18)}
+  pre .k{color:#ff8a5c} pre .c{color:#9a8880} pre .s{color:#9be3a5} pre .f{color:#ffc46b} pre .w{color:#ffd98a}
+
+  .grid{display:grid;gap:2vw;grid-template-columns:1fr 1fr;align-items:start}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:2.2vh 1.7vw;
+    box-shadow:0 8px 24px rgba(30,11,8,.06)}
+  .card pre{box-shadow:none;margin-top:.6vh}
+  .card.ok{border-top:5px solid var(--ok)} .card.bad{border-top:5px solid var(--bad)}
+  .tag{display:inline-flex;align-items:center;gap:.4em;font-size:.82rem;font-weight:700;padding:.3em 1em;
+    border-radius:99px;margin-bottom:.7em;background:var(--peach);color:var(--orange-d)}
+  .tag.ok{background:var(--okbg);color:var(--ok)} .tag.ok::before{content:"✓";font-weight:800}
+  .tag.bad{background:var(--badbg);color:var(--bad)} .tag.bad::before{content:"✕";font-weight:800}
+
+  table{border-collapse:separate;border-spacing:0;width:100%;background:var(--card);border:1px solid var(--line);
+    border-radius:16px;overflow:hidden;font-size:clamp(.85rem,1.5vw,1.18rem)}
+  th{background:var(--th-bg);color:#fff;text-align:left;padding:1.1vh 1.2vw;font-weight:700}
+  td{padding:1vh 1.2vw;border-bottom:1px solid var(--line)}
+  tr:last-child td{border-bottom:0}
+  td:first-child{font-family:"JetBrains Mono","Cascadia Code",Consolas,monospace;color:var(--orange-d);font-weight:500}
+
+  .flow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:.8vw}
+  .node{background:var(--card);border:2px solid var(--node-line);border-radius:14px;padding:1.2vh 1.2vw;text-align:center;
+    font-weight:600;font-size:clamp(.8rem,1.45vw,1.15rem)}
+  .node small{display:block;color:var(--muted);font-weight:400;font-size:.75em;margin-top:.3em;
+    font-family:"JetBrains Mono",Consolas,monospace}
+  .node.m{border-color:var(--orange);background:var(--peach)}
+  .node.o{background:var(--orange);border-color:var(--orange);color:#fff}
+  .node.o small{color:rgba(255,255,255,.85)}
+  .arrow{color:var(--orange);font-size:1.8rem;font-weight:800}
+
+  .note{background:var(--peach);border-left:6px solid var(--orange);padding:1.3vh 1.5vw;border-radius:12px;
+    font-size:clamp(.92rem,1.6vw,1.25rem)}
+  .big{font-size:clamp(1.3rem,2.6vw,2rem);text-align:center;font-weight:600;line-height:1.35}
+  .center{text-align:center;align-items:center}
+  .center .tag{margin-bottom:0}
+
+  @media (max-width:900px){nav{display:none}.grid{grid-template-columns:1fr}.slide{justify-content:flex-start}}
+  @media print{
+    html,body{overflow:visible;height:auto}
+    body{display:block}
+    .announce,.top{display:none}
+    .deck{position:static;background:#fff}
+    .slide{position:static;display:flex!important;page-break-after:always;height:100vh;animation:none}
+  }
+
+  /* ===== Ajustes de layout: header compacto, sin scroll en código ===== */
+  .announce{padding:.55vh 2vw;font-size:clamp(.68rem,1vw,.9rem);gap:1vw}
+  .announce .pill-dark{padding:.2em .8em}
+  .top{padding:1vh 2.5vw;gap:1.2vw}
+  .logo{min-width:0}
+  .logo img{height:1.8rem}
+  .wordmark{font-size:1.4rem}
+  nav{flex:1;min-width:0;flex-wrap:nowrap;gap:.1vw}
+  nav button{white-space:nowrap;font-size:clamp(.7rem,.95vw,.9rem);padding:.45em .7em}
+  nav button::after{display:none}
+  .actions{gap:.5vw;flex:none}
+  .btn-orange{white-space:nowrap;padding:.6em 1.2em;font-size:clamp(.78rem,1vw,.95rem)}
+  .round{width:2.4rem;height:2.4rem}
+  .counter{height:2.4rem;white-space:nowrap;padding:0 .9em;font-size:.85rem}
+
+  .slide{padding:2.2vh 6vw 2.8vh;gap:1.5vh;overflow:hidden}
+  .fit{display:flex;flex-direction:column;gap:inherit;align-items:inherit;justify-content:center;transform-origin:top left}
+  p,li{line-height:1.45}
+  pre{overflow:hidden;padding:1.5vh 1.5vw;font-size:clamp(.7rem,1.2vw,1rem);line-height:1.5}
+  .card{padding:1.8vh 1.4vw}
+
+  @media (max-width:1100px){nav{display:none}}
+  @media print{.fit{zoom:1!important;width:100%!important}}
+
+  /* ===== Diapositiva con código largo: scroll interno en vez de achicar ===== */
+  .slide.scroll .fit{height:100%;justify-content:flex-start}
+  .slide.scroll .grid{flex:1;min-height:0}
+  .slide.scroll .card{display:flex;flex-direction:column;min-height:0}
+  .slide.scroll .card pre{flex:1;min-height:0;overflow:auto;font-size:clamp(.78rem,1.15vw,1rem)}
+  @media print{.slide.scroll .card pre{overflow:visible}}
+
+  /* ===== Gráficos SVG (mapa de significados, flechas del coseno) ===== */
+  .viz{display:block;width:100%;height:auto;max-height:36vh}
+  .viz text{font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:15px;fill:var(--ink)}
+  .viz .grp{font-weight:700;fill:var(--muted);font-size:14px;letter-spacing:.04em}
+  .viz .cl{fill:var(--peach);stroke:var(--orange);stroke-width:1.5;stroke-dasharray:5 5;opacity:.7}
+  .viz .pt{fill:var(--orange)}
+  .viz .org{fill:var(--muted)}
+  .viz .near{stroke:var(--ok);stroke-width:3}
+  .viz .far{stroke:var(--bad);stroke-width:2.5;stroke-dasharray:7 6}
+  .viz .t-ok{fill:var(--ok);font-weight:700}
+  .viz .t-bad{fill:var(--bad);font-weight:700}
+  .viz .vec{stroke:var(--ink);stroke-width:3;fill:none}
+  .viz .vec.c{stroke:var(--orange)}
+  .viz .ah{fill:var(--ink)}
+  .viz .ah.c{fill:var(--orange)}
+  .viz .arc-ok{stroke:var(--ok);stroke-width:4;fill:none}
+  .viz .arc-bad{stroke:var(--bad);stroke-width:4;fill:none}
+  .viz .lbl{font-weight:800;font-size:20px}
+  .cap{font-size:clamp(.72rem,1.05vw,.88rem)!important;color:var(--muted);text-align:center;margin-top:.4vh}
+  .c-ok{color:var(--ok);font-weight:700} .c-bad{color:var(--bad);font-weight:700}
+  /* Tablas cuya primera columna es texto común (no código) */
+  table.plain td:first-child{font-family:inherit;color:var(--ink);font-weight:700}
+  .small, .small li{font-size:clamp(.85rem,1.4vw,1.1rem)}
+  /* Código largo: que se desplace dentro de la tarjeta en vez de empujarla */
+  .slide.scroll .fit{width:100%}
+  .slide.scroll .grid, .slide.scroll .card, .slide.scroll .card pre{min-width:0;max-width:100%}
+  /* ===== Botón para volver al índice ===== */
+  a.round{text-decoration:none}
+  .home svg{width:1.2rem;height:1.2rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .logo a{display:flex;align-items:center;text-decoration:none}
+</style>
+<script>try{var q=new URLSearchParams(location.search).get('tema');var t=(q==='dark'||q==='light')?q:localStorage.getItem('curso-theme');if(q==='dark'||q==='light')localStorage.setItem('curso-theme',q);if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+</head>
+<body>
+<div class="announce">
+  <span class="pill-dark">CLASE PRODUCCIÓN 🚀</span>
+  <span>Llevá tu sistema de agentes <b style="color:#fff">a producción</b>: observar, escalar y supervisar</span>
+  <span class="sep"></span>
+  <span>Clase del 15/12</span>
+</div>
+<header class="top">
+  <div class="logo">
+    <a href="index.html" class="to-index" title="Volver al índice">
+    <img id="ulogo" src="logo.png" alt="" onload="document.getElementById('flogo').style.display='none'" onerror="this.style.display='none'">
+    <span id="flogo" class="wordmark">PROD<i>|</i>Class</span>
+    </a>
+  </div>
+  <nav id="nav"></nav>
+  <div class="actions">
+    <a class="round home to-index" href="index.html" title="Volver al índice (I)" aria-label="Volver al índice del curso">
+      <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg>
+    </a>
+    <button class="round theme" id="theme" title="Cambiar tema (T)" aria-label="Cambiar entre modo claro y oscuro">
+      <svg class="moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+    <button class="round" id="prev" title="Anterior">←</button>
+    <button class="btn-orange" id="next">Siguiente →</button>
+    <div class="counter" id="count"></div>
+  </div>
+  <div class="bar" id="bar"></div>
+</header>
+<div class="deck" id="deck">
+
+<!-- 1 · Portada -->
+<section class="slide center">
+  <span class="tag">Clase 7 · Producción</span>
+  <h1>IA en producción<br><span class="hl">observar, escalar y supervisar</span></h1>
+  <p class="sub">Trazas con Phoenix y LangSmith, FastAPI + Redis y Human-in-the-Loop</p>
+  <p class="sub" style="font-size:1rem">Flechas ← → para navegar · F para pantalla completa · T para cambiar tema</p>
+</section>
+
+<!-- 2 · Agenda -->
+<section class="slide">
+  <h2>Qué vamos a ver hoy</h2>
+  <p>Ya construiste sistemas que razonan, recuperan información y colaboran. Hoy vemos lo que hace falta para <b>ponerlos en producción</b>:</p>
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="card"><h3>🔭 Observar</h3><p class="small"><b>Trazas y spans</b> con Arize Phoenix o LangSmith: saber qué pasó adentro en cada ejecución.</p></div>
+    <div class="card"><h3>📈 Escalar</h3><p class="small"><b>FastAPI + Redis</b>: una API que encola el trabajo y responde al instante con un Job ID.</p></div>
+    <div class="card"><h3>🧑‍⚖️ Supervisar</h3><p class="small"><b>Human-in-the-Loop</b>: pausar el agente antes de una acción crítica y esperar una aprobación.</p></div>
+  </div>
+  <ul class="small">
+    <li>El "éxito silencioso": por qué un <code>200 OK</code> no significa que salió bien</li>
+    <li>Latencia, costos y evaluadores (evals)</li>
+    <li>Un ejercicio de cola de tareas y un ejercicio guiado de aprobación humana</li>
+    <li>La <b>Pre-entrega 7</b>: API de producción y monitoreo activo</li>
+  </ul>
+</section>
+
+<!-- 3 · Éxito silencioso -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">El problema</span>
+  <h2>El "éxito silencioso"</h2>
+  <p>En producción, <b>"funciona en mi computadora"</b> es una frase peligrosa. Los sistemas con LLM son probabilísticos y opacos: pueden fallar <b>sin lanzar ningún error</b>.</p>
+  <div class="grid">
+    <div class="card">
+      <span class="tag">software tradicional</span>
+      <p class="small">Un error es <b>binario</b>: el código rompe o funciona. Si rompe, hay una excepción y un log.</p>
+    </div>
+    <div class="card bad">
+      <span class="tag bad">ingeniería de IA</span>
+      <p class="small">El usuario recibe una respuesta <b>bien formateada</b>. La API devuelve <code>200 OK</code>. <b>Pero</b> el agente ignoró las herramientas, usó un contexto irrelevante o <b>alucinó una cifra</b> crítica.</p>
+    </div>
+  </div>
+  <p class="big">Sin observabilidad, estás <b>volando a ciegas</b>.</p>
+  <p class="note"><b>Observabilidad</b> no es solo "loggear" texto: es poder <b>reconstruir lo que pasó adentro</b> del sistema a partir de lo que deja afuera: trazas, métricas y evaluaciones.</p>
+</section>
+
+<!-- 4 · Trazas, spans, runs -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Conceptos clave</span>
+  <h2>Trazas, spans y runs</h2>
+  <table>
+    <tr><th>Palabra</th><th>Qué significa</th></tr>
+    <tr><td>trace (traza)</td><td>El <b>viaje completo</b> de un pedido: desde que el usuario manda el mensaje hasta la respuesta final.</td></tr>
+    <tr><td>span (lapso)</td><td>Una <b>unidad de trabajo</b> dentro de la traza: una búsqueda vectorial, una llamada al LLM, la ejecución de una herramienta.</td></tr>
+    <tr><td>run (ejecución)</td><td>En LangSmith: la ejecución de un <code>Runnable</code> de LangChain.</td></tr>
+  </table>
+  <p>Los spans son <b>jerárquicos</b>: una traza es un <b>árbol de spans</b>.</p>
+<pre>traza: "¿Cuánto tarda un envío al interior?"                    4,2 s
+ ├── span: retriever (búsqueda en Pinecone)                     0,3 s
+ ├── span: agente
+ │    ├── span: llamada al LLM (decide usar una herramienta)    1,4 s
+ │    ├── span: tool consultar_envios                           0,6 s
+ │    └── span: llamada al LLM (redacta la respuesta)           1,9 s
+ └── respuesta final</pre>
+  <p class="note">Como el <b>seguimiento de un paquete</b>: la traza es el viaje entero; cada span, una escala (depósito, aduana, reparto), con su hora de entrada y de salida.</p>
+</section>
+
+<!-- 5 · Por qué spans -->
+<section class="slide">
+  <h2>¿Para qué separar en spans?</h2>
+  <p>Tu sistema tarda <b>10 segundos</b> en responder. ¿Dónde se fue el tiempo?</p>
+  <div class="grid">
+    <div class="card bad">
+      <span class="tag bad">solo un log de inicio y de fin</span>
+<pre>10:00:00  inicio
+10:00:10  fin</pre>
+      <p class="small">No sabés si fue la latencia del modelo, una búsqueda lenta en Pinecone o un <b>bucle</b> en tu grafo.</p>
+    </div>
+    <div class="card ok">
+      <span class="tag ok">con spans</span>
+<pre>retriever      0,4 s
+LLM            1,6 s
+tool buscar    7,5 s   <span class="c">← acá</span>
+LLM            0,5 s</pre>
+      <p class="small">El cuello de botella <b>se ve al instante</b>.</p>
+    </div>
+  </div>
+  <table class="plain">
+    <tr><th>Pieza</th><th>Qué te dice</th></tr>
+    <tr><td>Trazas</td><td>La <b>historia</b> de lo que pasó.</td></tr>
+    <tr><td>Spans</td><td><b>Dónde</b> falló o se puso lento.</td></tr>
+    <tr><td>Evals</td><td>Si el resultado es <b>confiable</b>.</td></tr>
+  </table>
+</section>
+
+<!-- 6 · Phoenix vs LangSmith -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Herramientas</span>
+  <h2>Arize Phoenix vs. LangSmith</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>🐦‍🔥 Arize Phoenix</h3>
+      <p class="small"><b>Abierto y local-first.</b> Código abierto, basado en el estándar <b>OpenInference</b> (una extensión de OpenTelemetry para IA).</p>
+      <ul class="small" style="margin-top:.8vh">
+        <li><b>Agnóstico del framework:</b> LangChain, LlamaIndex o el SDK puro de OpenAI.</li>
+        <li><b>Privacidad:</b> corre en tu máquina (Docker o notebook); los datos no salen de tu infraestructura.</li>
+        <li><b>Foco:</b> análisis de embeddings, detección de <i>drift</i> y evaluaciones de RAG.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🦜 LangSmith</h3>
+      <p class="small"><b>La experiencia integrada de LangChain.</b> La opción natural si tu stack es LCEL o LangGraph.</p>
+      <ul class="small" style="margin-top:.8vh">
+        <li><b>Plug-and-play:</b> con un par de variables de entorno, cada paso se registra solo.</li>
+        <li><b>Debugging:</b> editar y re-ejecutar prompts desde la interfaz, sin reiniciar el servidor.</li>
+        <li><b>Datasets:</b> armar conjuntos de prueba a partir de trazas reales, para pruebas de regresión.</li>
+      </ul>
+    </div>
+  </div>
+  <table>
+    <tr><th>Si...</th><th>Elegí</th></tr>
+    <tr><td>los datos no pueden salir de tu infraestructura, o no usás LangChain</td><td><b>Phoenix</b></td></tr>
+    <tr><td>todo tu sistema es LangChain / LangGraph y querés lo más rápido de configurar</td><td><b>LangSmith</b></td></tr>
+  </table>
+  <p class="note"><b>Drift</b> (deriva) = cuando los datos que recibe el sistema en producción empiezan a parecerse cada vez menos a los que tenía cuando lo probaste.</p>
+</section>
+
+<!-- 7 · Implementación -->
+<section class="slide">
+  <h2>Cómo se enciende cada una</h2>
+  <div class="grid">
+    <div class="card">
+      <span class="tag">LangSmith · variables de entorno</span>
+<pre><span class="c"># En tu .env (no hay que tocar el código)</span>
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=lsv2_...
+LANGSMITH_PROJECT=mi-agente</pre>
+      <p class="small">Con eso, cada cadena y cada nodo de LangGraph manda sus trazas solo.</p>
+    </div>
+    <div class="card">
+      <span class="tag">Phoenix · instrumentación</span>
+<pre><span class="k">import</span> phoenix <span class="k">as</span> px
+<span class="k">from</span> phoenix.otel <span class="k">import</span> register
+<span class="k">from</span> openinference.instrumentation.langchain \
+    <span class="k">import</span> LangChainInstrumentor
+
+px.<span class="f">launch_app</span>()   <span class="c"># interfaz en localhost:6006</span>
+tp = <span class="f">register</span>(project_name=<span class="s">"mi-agente"</span>)
+LangChainInstrumentor().<span class="f">instrument</span>(
+    tracer_provider=tp)</pre>
+    </div>
+  </div>
+  <div class="flow">
+    <div class="node">Instrumentación<small>"envuelve" tus llamadas al LLM</small></div><span class="arrow">→</span>
+    <div class="node m">Exporter<small>envía los datos al colector</small></div><span class="arrow">→</span>
+    <div class="node o">Frontend<small>ver las trazas en localhost:6006</small></div>
+  </div>
+  <p class="note">Los nombres exactos de las variables y de los paquetes cambian entre versiones (por ejemplo, LangSmith también acepta <code>LANGCHAIN_TRACING_V2</code>): confirmalos en la documentación de la versión que instales.</p>
+</section>
+
+<!-- 8 · Latencia y costos -->
+<section class="slide">
+  <h2>Latencia y costos: mirar los percentiles</h2>
+  <p>Un error de principiante es mirar solo la <b>latencia promedio</b>. En producción importan los <b>percentiles</b>.</p>
+  <table>
+    <tr><th>Métrica</th><th>Qué significa</th></tr>
+    <tr><td>p50</td><td>La <b>mediana</b>: la mitad de las respuestas tarda menos que esto.</td></tr>
+    <tr><td>p95</td><td>El 95% tarda menos que esto. O sea: lo que sufre <b>el 5% de usuarios con peor experiencia</b>.</td></tr>
+    <tr><td>p99</td><td>Igual, pero para el 1% más lento.</td></tr>
+  </table>
+  <div class="grid">
+    <div class="card bad">
+      <span class="tag bad">el promedio engaña</span>
+      <p class="small">Promedio: <b>3 segundos</b>. p95: <b>45 segundos</b>. Hay un problema grave de experiencia de usuario que el promedio esconde: 1 de cada 20 personas espera casi un minuto.</p>
+    </div>
+    <div class="card">
+      <h3>💰 Costos</h3>
+      <p class="small">Phoenix y LangSmith calculan el costo solos, a partir de los <b>tokens de entrada y de salida</b> que informa cada respuesta del modelo. Así ves qué agente o qué usuario se come el presupuesto.</p>
+    </div>
+  </div>
+  <p class="note">Las dos métricas que pide la entrega salen de acá: <b>costo por ejecución</b> y <b>latencia p95</b>.</p>
+</section>
+
+<!-- 9 · Evals -->
+<section class="slide">
+  <h2>Evaluadores: detectar alucinaciones</h2>
+  <p>El monitoreo tradicional usa chequeos de sí o no. En IA se usan <b>evaluadores</b> (<i>LLM-as-a-judge</i>): <b>otro modelo</b> que le pone nota a la respuesta.</p>
+  <table class="plain">
+    <tr><th>La tríada de RAG</th><th>La pregunta que responde</th></tr>
+    <tr><td>Faithfulness (fidelidad)</td><td>¿La respuesta sale <b>solo del contexto recuperado</b>? Si el LLM usa su conocimiento propio, cuenta como alucinación, <b>aunque el dato sea cierto</b>: rompe el control del sistema.</td></tr>
+    <tr><td>Answer relevance</td><td>¿La respuesta <b>contesta</b> lo que preguntó el usuario?</td></tr>
+    <tr><td>Context precision</td><td>¿Los documentos recuperados eran <b>realmente útiles</b> para responder?</td></tr>
+  </table>
+  <div class="card bad">
+    <span class="tag bad">error típico: optimizar el componente equivocado</span>
+    <p class="small">La respuesta es mala y te ponés a <b>cambiar el prompt</b>. Pero la traza muestra que el problema estaba antes: el retriever <b>no trajo la información</b> de Pinecone. Sin mirar el span de recuperación, estarías arreglando lo que no está roto.</p>
+  </div>
+</section>
+
+<!-- 10 · Errores observabilidad -->
+<section class="slide">
+  <h2>Errores comunes de observabilidad</h2>
+  <table class="plain">
+    <tr><th>Error</th><th>Qué pasa</th><th>Mejor práctica</th></tr>
+    <tr><td>Instrumentar demasiado tarde</td><td>Esperar al despliegue para activar Phoenix o LangSmith.</td><td>La observabilidad es una herramienta de <b>desarrollo</b>: ver las trazas mientras programás muestra cómo fluye el estado del grafo, mejor que llenar el código de <code>print()</code>.</td></tr>
+    <tr><td>Ignorar la versión de los prompts</td><td>Una alucinación puede venir de <b>una sola palabra</b> cambiada en el system prompt, y no sabés cuándo cambió.</td><td>Registrar <code>prompt_template_version</code> como <b>tag</b> en cada traza. LangSmith lo gestiona con su Prompt Hub.</td></tr>
+    <tr><td>Confiar a ciegas en los auto-evaluadores</td><td>Los evaluadores basados en LLM tienen sus propios <b>sesgos</b>.</td><td>Usarlos como <b>alerta temprana</b>, no como verdad absoluta. No reemplazan los tests unitarios ni la revisión humana en casos críticos.</td></tr>
+  </table>
+  <p class="note">Pasamos de ver la IA como una "caja negra" a verla como un <b>flujo de datos medible</b>. Ahora falta que ese flujo aguante a muchos usuarios.</p>
+</section>
+
+<!-- 11 · Latencia en IA -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Escalar</span>
+  <h2>El problema: los agentes tardan</h2>
+  <p>Un flujo de agentes que consulta herramientas, navega y busca en una base vectorial puede tardar <b>30, 60 o hasta 120 segundos</b>.</p>
+  <div class="card bad">
+    <span class="tag bad">correr el agente dentro del request</span>
+    <div class="flow" style="justify-content:flex-start">
+      <div class="node">Cliente</div><span class="arrow">→</span>
+      <div class="node m">API<small>ejecuta el agente... 90 s</small></div><span class="arrow">→</span>
+      <div class="node">Respuesta<small>si la conexión sobrevive</small></div>
+    </div>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="card"><h3>✂️ Timeout</h3><p class="small">Los firewalls y proxies <b>cortan</b> las conexiones que quedan abiertas tanto tiempo.</p></div>
+    <div class="card"><h3>😟 Usuario</h3><p class="small">Piensa que el sistema <b>"se colgó"</b>, y vuelve a mandar el pedido.</p></div>
+    <div class="card"><h3>🔥 Servidor</h3><p class="small">Se queda <b>sin recursos</b>, esperando a que el LLM termine.</p></div>
+  </div>
+  <p class="note">La solución estándar de la industria: <b>procesamiento asíncrono con colas de mensajes</b>. Se separa <b>recibir</b> el pedido de <b>procesarlo</b>.</p>
+</section>
+
+<!-- 12 · Arquitectura desacoplada -->
+<section class="slide">
+  <h2>La solución: recibir por un lado, procesar por otro</h2>
+  <div class="flow">
+    <div class="node">Cliente</div><span class="arrow">→</span>
+    <div class="node">FastAPI<small>recibe y devuelve un Job ID</small></div><span class="arrow">→</span>
+    <div class="node m">Redis<small>cola + estado de cada tarea</small></div><span class="arrow">→</span>
+    <div class="node o">Worker<small>ejecuta el grafo</small></div>
+  </div>
+  <table class="plain">
+    <tr><th>Pieza</th><th>Rol</th><th>Qué hace</th></tr>
+    <tr><td>FastAPI</td><td>El recepcionista</td><td>Recibe el pedido, valida los datos, le da al usuario un <b>ticket</b> (Job ID) y deja la tarea en el buzón. Responde en <b>milisegundos</b>.</td></tr>
+    <tr><td>Redis</td><td>El buzón</td><td>Es el <i>message broker</i>: guarda las tareas pendientes hasta que alguien las recoja.</td></tr>
+    <tr><td>Worker</td><td>El especialista</td><td>Un proceso aparte (se pueden levantar varios) que saca tareas de la cola, ejecuta el grafo de LangGraph y guarda el resultado en Redis.</td></tr>
+  </table>
+  <p class="note">Como una <b>tintorería</b>: dejás la ropa, te dan un ticket y te vas. Nadie se queda parado en el mostrador mientras lavan. Después pasás con el ticket a preguntar si está lista.</p>
+</section>
+
+<!-- 13 · Redis, polling, errores -->
+<section class="slide">
+  <h2>Redis, polling y dos errores a evitar</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>🧱 ¿Por qué Redis?</h3>
+      <p class="small">No es solo un caché. Tiene estructuras como <b>Lists</b> (colas simples) y <b>Streams</b> (eventos), y trabaja <b>en memoria</b>: coordina miles de tareas casi sin latencia.</p>
+    </div>
+    <div class="card">
+      <h3>🔁 Polling (sondeo)</h3>
+      <p class="small">El cliente pregunta <b>cada tanto</b> a <code>/status/{job_id}</code> si la tarea terminó. Simple, robusto y más fácil de desplegar que WebSockets.</p>
+    </div>
+  </div>
+<pre><span class="k">await</span> redis.<span class="f">rpush</span>(<span class="s">"tasks_queue"</span>, job_id)            <span class="c"># la API agrega al FINAL de la cola</span>
+_, job_id = <span class="k">await</span> redis.<span class="f">blpop</span>(<span class="s">"tasks_queue"</span>)       <span class="c"># el worker saca del PRINCIPIO (y espera si está vacía)</span></pre>
+  <table class="plain">
+    <tr><th>Error</th><th>Qué pasa</th></tr>
+    <tr><td>Ejecutar la IA directamente en el endpoint</td><td>Bloqueás el hilo de ejecución, y la API <b>deja de responderles a los demás</b> usuarios.</td></tr>
+    <tr><td>No guardar el estado inicial</td><td>Si encolás <b>antes</b> de escribir el estado <code>pending</code>, un cliente rápido puede consultar y recibir un <b>404</b>: el registro todavía no existe. Siempre <b>registrá el estado antes de encolar</b>.</td></tr>
+  </table>
+</section>
+
+<!-- 14 · Ejercicio 1: consigna -->
+<section class="slide">
+  <h2>Ejercicio 1: qué tenés que hacer</h2>
+  <p><b>Objetivo:</b> separar la <b>API</b> que recibe pedidos del <b>worker</b> que los procesa, usando Redis como <b>cola</b> y como <b>registro del estado</b> de cada tarea.</p>
+  <table class="plain">
+    <tr><th>Parte</th><th>Qué tiene que hacer</th></tr>
+    <tr><td>create_task</td><td>Generar <code>job_id = str(uuid.uuid4())</code>, guardar en Redis <code>f"{STATUS_PREFIX}{job_id}"</code> con el JSON <code>{"status": "pending", "query": ..., "result": None}</code>, encolar el <code>job_id</code> con <code>rpush</code> en <code>QUEUE_NAME</code> y devolver enseguida <code>{"job_id": ..., "status": "pending"}</code>.</td></tr>
+    <tr><td>get_status</td><td>Leer la clave del job. Si no existe, <code>HTTPException(status_code=404)</code>; si existe, devolver el JSON.</td></tr>
+    <tr><td>task_worker</td><td>En un bucle: sacar un <code>job_id</code> con <code>await redis_client.blpop(QUEUE_NAME, timeout=0)</code>, marcar <code>processing</code>, simular el trabajo con <code>await asyncio.sleep(5)</code> y guardar <code>completed</code> con un resultado de texto.</td></tr>
+    <tr><td>startup</td><td>El worker arranca junto con la API gracias al bloque <code>@app.on_event("startup")</code> que ya viene en el código inicial. No hace falta tocarlo.</td></tr>
+  </table>
+<pre><span class="c"># Qué necesitás: Redis corriendo en tu máquina</span>
+docker run -d -p 6379:6379 redis
+pip install fastapi uvicorn redis
+uvicorn main:app --reload</pre>
+</section>
+
+<!-- 15 · Ejercicio 1: salida -->
+<section class="slide">
+  <h2>Ejercicio 1: prueba y qué deberías ver</h2>
+<pre>curl -X POST localhost:8000/process -H "Content-Type: application/json" -d '{"query": "hola"}'
+curl localhost:8000/status/&lt;job_id&gt;</pre>
+<pre style="white-space:pre-wrap">POST /process          -&gt; {"job_id": "3f2a…", "status": "pending"}
+GET /status (enseguida) -&gt; {"status": "processing", "query": "hola", "result": null}
+GET /status (a los 5 s) -&gt; {"status": "completed", "query": "hola", "result": "Resultado procesado para: hola"}
+GET /status/inventado   -&gt; 404 {"detail": "Job no encontrado"}</pre>
+  <div class="flow">
+    <div class="node">pending<small>registrado y encolado</small></div><span class="arrow">→</span>
+    <div class="node m">processing<small>el worker lo tomó</small></div><span class="arrow">→</span>
+    <div class="node o">completed<small>a los 5 segundos</small></div>
+  </div>
+  <ul class="small">
+    <li>El POST responde <b>al instante</b>, con el <code>job_id</code> y <code>"status": "pending"</code>: no espera los 5 segundos.</li>
+    <li>Consultado enseguida, el estado ya es <code>processing</code>; a los 5 segundos pasa a <code>completed</code>, con el resultado.</li>
+    <li>Con un <code>job_id</code> inventado, la respuesta es <b>404</b>.</li>
+  </ul>
+</section>
+
+<!-- 16 · Ejercicio 1: solución -->
+<section class="slide scroll">
+  <h2>Ejercicio 1: solución completa y comentada</h2>
+  <div class="grid" style="grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);align-items:stretch">
+    <div class="card" style="padding:1vh .8vw"><span class="tag">Código completo · necesita Redis en localhost:6379</span>
+<pre><span class="c"># =====================================================================</span>
+<span class="c"># EJERCICIO 1: API + cola en Redis + worker (patrón de polling)</span>
+<span class="c"># =====================================================================</span>
+<span class="c"># Antes de correrlo:</span>
+<span class="c">#     docker run -d -p 6379:6379 redis</span>
+<span class="c">#     pip install fastapi uvicorn redis</span>
+<span class="c">#     uvicorn main:app --reload      (si el archivo se llama main.py)</span>
+<span class="c"># =====================================================================</span>
+<span class="k">import</span> asyncio
+<span class="k">import</span> uuid     <span class="c"># genera identificadores únicos</span>
+<span class="k">import</span> json     <span class="c"># Redis guarda texto: convertimos los dict a JSON y de vuelta</span>
+<span class="k">from</span> fastapi <span class="k">import</span> FastAPI, HTTPException
+<span class="k">from</span> redis <span class="k">import</span> asyncio <span class="k">as</span> aioredis   <span class="c"># el cliente ASÍNCRONO de Redis</span>
+<span class="k">from</span> pydantic <span class="k">import</span> BaseModel
+
+<span class="c"># Configuración de Redis</span>
+REDIS_URL = <span class="s">"redis://localhost:6379"</span>
+QUEUE_NAME = <span class="s">"tasks_queue"</span>     <span class="c"># la lista que funciona como cola</span>
+STATUS_PREFIX = <span class="s">"status:"</span>      <span class="c"># cada tarea se guarda como "status:&lt;job_id&gt;"</span>
+
+app = FastAPI()
+<span class="c"># decode_responses=True: Redis devuelve texto (str) en vez de bytes</span>
+redis_client = aioredis.from_url(REDIS_URL, decode_responses=<span class="k">True</span>)
+
+<span class="k">class</span> <span class="f">TaskRequest</span>(BaseModel):
+    query: str
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># EL RECEPCIONISTA: recibe, registra, encola y responde al instante</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">@app.post</span>(<span class="s">"/process"</span>)
+<span class="k">async def</span> <span class="f">create_task</span>(request: TaskRequest):
+    <span class="c"># El "ticket" que le damos al cliente</span>
+    job_id = str(uuid.uuid4())
+
+    <span class="c"># 1. PRIMERO registramos el estado inicial...</span>
+    job = {<span class="s">"status"</span>: <span class="s">"pending"</span>, <span class="s">"query"</span>: request.query, <span class="s">"result"</span>: <span class="k">None</span>}
+    <span class="k">await</span> redis_client.<span class="f">set</span>(f<span class="s">"{STATUS_PREFIX}{job_id}"</span>, json.dumps(job))
+
+    <span class="c"># 2. ...y RECIÉN DESPUÉS encolamos. Si fuera al revés, un worker rápido</span>
+    <span class="c">#    podría tomar la tarea antes de que exista su registro, y el cliente</span>
+    <span class="c">#    recibiría un 404 al consultar.</span>
+    <span class="k">await</span> redis_client.<span class="f">rpush</span>(QUEUE_NAME, job_id)   <span class="c"># rpush = agrega al final</span>
+
+    <span class="c"># 3. Respondemos ya: NO esperamos a que la tarea termine</span>
+    <span class="k">return</span> {<span class="s">"job_id"</span>: job_id, <span class="s">"status"</span>: <span class="s">"pending"</span>}
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># POLLING: el cliente pregunta cómo va su tarea</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">@app.get</span>(<span class="s">"/status/{job_id}"</span>)
+<span class="k">async def</span> <span class="f">get_status</span>(job_id: str):
+    data = <span class="k">await</span> redis_client.<span class="f">get</span>(f<span class="s">"{STATUS_PREFIX}{job_id}"</span>)
+    <span class="k">if</span> data <span class="k">is None</span>:
+        <span class="c"># Ese ticket no existe</span>
+        <span class="k">raise</span> HTTPException(status_code=<span class="w">404</span>, detail=<span class="s">"Job no encontrado"</span>)
+    <span class="k">return</span> json.loads(data)
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># EL ESPECIALISTA: saca tareas de la cola y las procesa, para siempre</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">async def</span> <span class="f">task_worker</span>():
+    <span class="k">while True</span>:
+        <span class="c"># blpop = saca del principio de la cola. Si está vacía, ESPERA</span>
+        <span class="c"># (timeout=0: sin límite) sin gastar CPU ni bloquear el event loop.</span>
+        <span class="c"># Devuelve (nombre_de_la_cola, valor).</span>
+        _, job_id = <span class="k">await</span> redis_client.<span class="f">blpop</span>(QUEUE_NAME, timeout=<span class="w">0</span>)
+        key = f<span class="s">"{STATUS_PREFIX}{job_id}"</span>
+        job = json.loads(<span class="k">await</span> redis_client.<span class="f">get</span>(key))
+
+        <span class="k">try</span>:
+            <span class="c"># Avisamos que ya la estamos trabajando</span>
+            job[<span class="s">"status"</span>] = <span class="s">"processing"</span>
+            <span class="k">await</span> redis_client.<span class="f">set</span>(key, json.dumps(job))
+
+            <span class="c"># Acá iría el grafo de LangGraph. Lo simulamos con 5 segundos.</span>
+            <span class="k">await</span> asyncio.sleep(<span class="w">5</span>)
+
+            job[<span class="s">"status"</span>] = <span class="s">"completed"</span>
+            job[<span class="s">"result"</span>] = f<span class="s">"Resultado procesado para: {job['query']}"</span>
+        <span class="k">except</span> Exception <span class="k">as</span> e:
+            <span class="c"># Si algo falla, lo dejamos escrito. Sin esto, el cliente se</span>
+            <span class="c"># quedaría consultando "processing" para siempre.</span>
+            job[<span class="s">"status"</span>] = <span class="s">"failed"</span>
+            job[<span class="s">"result"</span>] = str(e)
+
+        <span class="k">await</span> redis_client.<span class="f">set</span>(key, json.dumps(job))
+
+
+<span class="c"># Al arrancar la API, lanzamos el worker en segundo plano</span>
+<span class="c"># (este bloque ya viene en el código inicial)</span>
+<span class="k">@app.on_event</span>(<span class="s">"startup"</span>)
+<span class="k">async def</span> <span class="f">startup_event</span>():
+    asyncio.create_task(task_worker())</pre>
+    </div>
+  </div>
+</section>
+
+<!-- 17 · HITL: qué es -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Supervisar</span>
+  <h2>Human-in-the-Loop: pausar, persistir y reanudar</h2>
+  <p class="big"><b>HITL</b>: el agente <b>se detiene</b> antes de una acción crítica y <b>espera</b> a que una persona la apruebe.</p>
+  <div class="grid">
+    <div class="card ok">
+      <span class="tag ok">sí: lo que sale caro si sale mal</span>
+      <p class="small">Un <b>reembolso grande</b>, borrar datos, mandarle un correo a un cliente, ejecutar una herramienta con <b>efectos en el mundo real</b>.</p>
+    </div>
+    <div class="card bad">
+      <span class="tag bad">no: todo</span>
+      <p class="small">Si una persona revisa <b>cada respuesta</b>, se pierde la ventaja de automatizar. HITL no es "manual": es <b>automatización asistida</b>.</p>
+    </div>
+  </div>
+  <table class="plain">
+    <tr><th>Necesita</th><th>Para qué</th></tr>
+    <tr><td>Un punto de pausa</td><td>Detener la ejecución del grafo <b>en el nodo crítico</b>.</td></tr>
+    <tr><td>Un checkpointer</td><td>Guardar el estado del hilo (<code>thread_id</code>) mientras se espera. Pueden pasar <b>minutos u horas</b>: el proceso no puede quedar en memoria esperando. Es la persistencia de la clase 5.</td></tr>
+  </table>
+  <p class="note"><b>Human-in-the-loop</b>: el agente <b>se detiene</b> y espera la aprobación. <b>Human-on-the-loop</b>: el agente <b>actúa solo</b>, y una persona vigila desde afuera y puede intervenir después.</p>
+</section>
+
+<!-- 18 · HITL: código del grafo -->
+<section class="slide scroll">
+  <h2>Ejemplo: un reembolso que necesita aprobación</h2>
+  <div class="grid" style="grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);align-items:stretch">
+    <div class="card" style="padding:1vh .8vw"><span class="tag">Código completo · copiá, pegá y corré · sin API keys</span>
+<pre><span class="c"># =====================================================================</span>
+<span class="c"># HITL: un grafo que se pausa para pedir aprobación humana</span>
+<span class="c"># =====================================================================</span>
+<span class="c"># Antes de correrlo (una sola vez):  pip install langgraph</span>
+<span class="c"># =====================================================================</span>
+<span class="k">from</span> typing <span class="k">import</span> TypedDict
+<span class="k">from</span> langgraph.graph <span class="k">import</span> StateGraph, START, END
+<span class="k">from</span> langgraph.checkpoint.memory <span class="k">import</span> MemorySaver
+<span class="k">from</span> langgraph.types <span class="k">import</span> interrupt, Command
+
+<span class="k">class</span> <span class="f">Estado</span>(TypedDict):
+    pedido: str
+    monto: float
+    aprobado: bool
+    resultado: str
+
+<span class="k">def</span> <span class="f">evaluar</span>(estado: Estado) -&gt; dict:
+    <span class="c"># Acá iría la lógica normal del agente (clasificar, usar herramientas...)</span>
+    <span class="k">return</span> {}
+
+<span class="k">def</span> <span class="f">aprobacion_humana</span>(estado: Estado) -&gt; dict:
+    <span class="c"># Regla de negocio: por debajo de 1000 no hace falta un humano</span>
+    <span class="k">if</span> estado[<span class="s">"monto"</span>] &lt; <span class="w">1000</span>:
+        <span class="k">return</span> {<span class="s">"aprobado"</span>: <span class="k">True</span>}
+
+    <span class="c"># interrupt() PAUSA el grafo y guarda el estado en el checkpointer.</span>
+    <span class="c"># El diccionario es lo que ve el revisor desde afuera.</span>
+    <span class="c"># Cuando alguien reanude, interrupt() devuelve su respuesta.</span>
+    decision = <span class="f">interrupt</span>({
+        <span class="s">"pregunta"</span>: f<span class="s">"¿Aprobás el reembolso de {estado['monto']} USD?"</span>,
+        <span class="s">"pedido"</span>: estado[<span class="s">"pedido"</span>],
+    })
+    <span class="k">return</span> {<span class="s">"aprobado"</span>: decision == <span class="s">"si"</span>}
+
+<span class="k">def</span> <span class="f">ejecutar</span>(estado: Estado) -&gt; dict:
+    <span class="c"># La acción con efectos (cobrar, reembolsar) va en un nodo POSTERIOR</span>
+    <span class="c"># al interrupt, nunca antes dentro del mismo nodo.</span>
+    <span class="k">if</span> estado[<span class="s">"aprobado"</span>]:
+        <span class="k">return</span> {<span class="s">"resultado"</span>: <span class="s">"Reembolso ejecutado"</span>}
+    <span class="k">return</span> {<span class="s">"resultado"</span>: <span class="s">"Reembolso rechazado por el revisor"</span>}
+
+builder = StateGraph(Estado)
+builder.<span class="f">add_node</span>(<span class="s">"evaluar"</span>, evaluar)
+builder.<span class="f">add_node</span>(<span class="s">"aprobacion_humana"</span>, aprobacion_humana)
+builder.<span class="f">add_node</span>(<span class="s">"ejecutar"</span>, ejecutar)
+builder.<span class="f">add_edge</span>(START, <span class="s">"evaluar"</span>)
+builder.<span class="f">add_edge</span>(<span class="s">"evaluar"</span>, <span class="s">"aprobacion_humana"</span>)
+builder.<span class="f">add_edge</span>(<span class="s">"aprobacion_humana"</span>, <span class="s">"ejecutar"</span>)
+builder.<span class="f">add_edge</span>(<span class="s">"ejecutar"</span>, END)
+
+<span class="c"># Sin checkpointer no hay pausa posible: no habría dónde guardar el estado</span>
+graph = builder.<span class="f">compile</span>(checkpointer=MemorySaver())
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="c"># El thread_id identifica ESTA tarea</span>
+    config = {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"pedido-42"</span>}}
+
+    graph.<span class="f">invoke</span>({<span class="s">"pedido"</span>: <span class="s">"42"</span>, <span class="s">"monto"</span>: <span class="w">2500</span>, <span class="s">"aprobado"</span>: <span class="k">False</span>, <span class="s">"resultado"</span>: <span class="s">""</span>}, config)
+    <span class="c"># .next dice qué nodo quedó pendiente: el grafo está pausado</span>
+    <span class="f">print</span>(graph.get_state(config).next)       <span class="c"># ('aprobacion_humana',)</span>
+
+    <span class="c"># ... más tarde, cuando el revisor decide:</span>
+    graph.<span class="f">invoke</span>(Command(resume=<span class="s">"si"</span>), config)
+    <span class="f">print</span>(graph.get_state(config).values[<span class="s">"resultado"</span>])   <span class="c"># Reembolso ejecutado</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- 19 · Tres cosas -->
+<section class="slide">
+  <h2>Tres cosas para tener en cuenta</h2>
+  <div class="flow">
+    <div class="node">evaluar</div><span class="arrow">→</span>
+    <div class="node m">aprobacion_humana<small>interrupt() → PAUSA</small></div><span class="arrow">⏸</span>
+    <div class="node">revisor<small>Command(resume="si")</small></div><span class="arrow">→</span>
+    <div class="node o">ejecutar<small>recién acá, la acción real</small></div>
+  </div>
+  <table>
+    <tr><th>Pieza</th><th>Qué hace</th></tr>
+    <tr><td>interrupt({...})</td><td><b>Detiene el grafo</b> y le pasa al exterior el diccionario con la pregunta. El estado queda guardado en el checkpointer, bajo ese <code>thread_id</code>.</td></tr>
+    <tr><td>Command(resume=...)</td><td><b>Reanuda el mismo hilo.</b> El valor que pasás (<code>"si"</code> o <code>"no"</code>) es lo que devuelve <code>interrupt()</code> dentro del nodo.</td></tr>
+    <tr><td>get_state(config).next</td><td>Dice qué nodo quedó pendiente. Si no está vacío, el grafo <b>está pausado</b>.</td></tr>
+  </table>
+  <div class="card bad">
+    <span class="tag bad">cuidado: al reanudar, el nodo se ejecuta otra vez desde el principio</span>
+    <p class="small">Por eso <b>no pongas código con efectos antes del <code>interrupt()</code></b> (cobrar, enviar un correo): se ejecutaría <b>dos veces</b>. Ponelo en el <b>nodo siguiente</b>.</p>
+  </div>
+</section>
+
+<!-- 20 · Redis + endpoints -->
+<section class="slide">
+  <h2>De memoria a Redis, y dos endpoints</h2>
+  <p><code>MemorySaver</code> sirve para probar, pero <b>se borra si el proceso se reinicia</b>. En producción, el estado vive en Redis: solo cambia el checkpointer.</p>
+<pre><span class="k">from</span> langgraph.checkpoint.redis <span class="k">import</span> RedisSaver     <span class="c"># pip install langgraph-checkpoint-redis</span>
+
+<span class="k">with</span> RedisSaver.<span class="f">from_conn_string</span>(<span class="s">"redis://localhost:6379"</span>) <span class="k">as</span> checkpointer:
+    checkpointer.<span class="f">setup</span>()                          <span class="c"># crea los índices la primera vez</span>
+    graph = builder.<span class="f">compile</span>(checkpointer=checkpointer)</pre>
+<pre><span class="k">@app.post</span>(<span class="s">"/tasks/{task_id}/start"</span>)
+<span class="k">def</span> <span class="f">iniciar</span>(task_id: str, monto: float):
+    config = {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: task_id}}    <span class="c"># el task_id ES el thread_id</span>
+    graph.<span class="f">invoke</span>({<span class="s">"pedido"</span>: task_id, <span class="s">"monto"</span>: monto, <span class="s">"aprobado"</span>: <span class="k">False</span>, <span class="s">"resultado"</span>: <span class="s">""</span>}, config)
+    estado = graph.get_state(config)
+    <span class="k">if</span> estado.next:                                      <span class="c"># quedó un nodo pendiente: está pausado</span>
+        <span class="k">return</span> {<span class="s">"status"</span>: <span class="s">"esperando_aprobacion"</span>}
+    <span class="k">return</span> {<span class="s">"status"</span>: <span class="s">"completado"</span>, <span class="s">"resultado"</span>: estado.values[<span class="s">"resultado"</span>]}
+
+<span class="k">@app.post</span>(<span class="s">"/tasks/{task_id}/approve"</span>)
+<span class="k">def</span> <span class="f">aprobar</span>(task_id: str, decision: Decision):          <span class="c"># Decision: un BaseModel con aprobado: bool</span>
+    config = {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: task_id}}
+    graph.<span class="f">invoke</span>(Command(resume=<span class="s">"si"</span> <span class="k">if</span> decision.aprobado <span class="k">else</span> <span class="s">"no"</span>), config)
+    <span class="k">return</span> {<span class="s">"status"</span>: <span class="s">"completado"</span>, <span class="s">"resultado"</span>: graph.get_state(config).values[<span class="s">"resultado"</span>]}</pre>
+  <p class="note">Como el <code>task_id</code> funciona de <code>thread_id</code>, el endpoint de aprobación reanuda <b>exactamente</b> la tarea que quedó pausada. Dentro de endpoints <code>async</code>, usá <code>AsyncRedisSaver</code> con <code>await graph.ainvoke(...)</code>.</p>
+</section>
+
+<!-- 21 · Ejercicio guiado -->
+<section class="slide">
+  <h2>Ejercicio guiado: aprobar un reembolso</h2>
+  <p>Copiá el ejemplo (el grafo + los dos endpoints) y levantalo con <code>uvicorn</code>.</p>
+  <table class="plain">
+    <tr><th>Paso</th><th>Qué ejecutar</th><th>Resultado esperado</th></tr>
+    <tr><td>1</td><td><code>POST /tasks/A1/start?monto=500</code></td><td><code>completado</code>: no es crítico, pasa sin humano.</td></tr>
+    <tr><td>2</td><td><code>POST /tasks/B2/start?monto=2500</code></td><td><code>esperando_aprobacion</code>: el grafo quedó pausado.</td></tr>
+    <tr><td>3</td><td><code>POST /tasks/B2/approve</code> con <code>{"aprobado": false}</code></td><td>"Reembolso rechazado por el revisor".</td></tr>
+  </table>
+<pre style="white-space:pre-wrap">1) POST /tasks/A1/start?monto=500   -&gt; {"status": "completado", "resultado": "Reembolso ejecutado"}
+2) POST /tasks/B2/start?monto=2500  -&gt; {"status": "esperando_aprobacion"}
+3) POST /tasks/B2/approve           -&gt; {"status": "completado", "resultado": "Reembolso rechazado por el revisor"}</pre>
+  <div class="card ok">
+    <span class="tag ok">desafío</span>
+    <p class="small">Reemplazá <code>MemorySaver</code> por <code>RedisSaver</code>, <b>reiniciá la API</b> entre el paso 2 y el paso 3, y comprobá que la tarea B2 <b>se puede aprobar igual</b>. Esa es la prueba de que el estado sobrevive al reinicio, como pide la Pre-entrega 7.</p>
+  </div>
+</section>
+
+<!-- 22 · Criterios de diseño HITL -->
+<section class="slide">
+  <h2>Criterios para diseñar la supervisión humana</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>🎯 Selectiva, no total</h3>
+      <p class="small">Solo se desvían al experto los casos <b>ambiguos o críticos</b>. Revisar el 100% elimina la escala y el ahorro de la IA.</p>
+    </div>
+    <div class="card">
+      <h3>🚦 Dos disparadores</h3>
+      <p class="small"><b>Baja confianza</b> del modelo, o una <b>regla de negocio</b> por riesgo (un monto alto, un tema legal), sin importar qué tan seguro esté el modelo. Se combinan los dos.</p>
+    </div>
+    <div class="card">
+      <h3>💾 Persistencia obligatoria</h3>
+      <p class="small">Sin checkpoints no hay supervisión asíncrona: el sistema tiene que poder <b>esperar horas o días</b> y retomar exactamente donde quedó.</p>
+    </div>
+    <div class="card">
+      <h3>🧹 El feedback se valida</h3>
+      <p class="small">Las correcciones humanas <b>no van directo</b> al reentrenamiento: las personas también se equivocan y tienen sesgos. Primero se validan y se limpian.</p>
+    </div>
+  </div>
+  <p class="note"><b>Auditoría y compliance:</b> en sectores regulados (finanzas, salud, legal), registrar <b>quién aprobó qué, con qué contexto y por qué</b> es un requisito. HITL deja esa evidencia de supervisión responsable.</p>
+</section>
+
+<!-- 23 · Resumen -->
+<section class="slide">
+  <h2>Resumen de la clase</h2>
+  <ul>
+    <li>Los LLM fallan <b>"en silencio"</b>: responden <code>200 OK</code> pero alucinan o tardan de más. Sin trazas, no sabés qué pasó.</li>
+    <li><b>Traza</b> = el viaje completo; <b>span</b> = cada paso; <b>evals</b> = si el resultado es confiable.</li>
+    <li><b>Phoenix</b>: abierto, local y agnóstico del framework. <b>LangSmith</b>: integración directa con LangChain y LangGraph.</li>
+    <li>Mirá <b>percentiles</b> (p95), no promedios, y el <b>costo por ejecución</b>.</li>
+    <li>El agente <b>no corre dentro del request</b>: FastAPI encola en Redis y devuelve un Job ID; un <b>worker</b> procesa; el cliente consulta por <b>polling</b>.</li>
+    <li>Registrá el estado <b>antes</b> de encolar, y marcá <code>failed</code> si el worker falla.</li>
+    <li><b>HITL</b>: <code>interrupt()</code> pausa, el checkpointer guarda, <code>Command(resume=...)</code> reanuda. Solo para lo crítico.</li>
+  </ul>
+  <p class="sub">¿Preguntas?</p>
+</section>
+
+<!-- 24 · Pre-entrega 7: qué construir -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Pre-entrega 7</span>
+  <h2>API de producción y monitoreo activo</h2>
+  <p>Una <b>API REST con FastAPI</b> que exponga tu sistema multi-agente de la clase 6, con cinco capacidades nuevas:</p>
+  <table class="plain">
+    <tr><th>Capacidad</th><th>Qué significa</th></tr>
+    <tr><td>1 · Endpoints asíncronos</td><td>La API <b>no se bloquea</b>: recibe la tarea, la encola y devuelve un ID.</td></tr>
+    <tr><td>2 · Estado en Redis</td><td>Redis guarda el <b>estado de los trabajos</b> y los <b>checkpoints</b> de LangGraph.</td></tr>
+    <tr><td>3 · Observabilidad</td><td>Instrumentación activa que envía <b>trazas de cada ejecución</b> a Phoenix o LangSmith.</td></tr>
+    <tr><td>4 · Human-in-the-loop</td><td>Una <b>pausa obligatoria</b> para aprobación humana en las tareas "críticas" (una herramienta con efectos secundarios o de costo muy alto).</td></tr>
+    <tr><td>5 · Prueba de carga</td><td><b>5 peticiones concurrentes</b> contra la API, y capturas del dashboard con el <b>costo por ejecución</b> y la <b>latencia p95</b> de esa corrida.</td></tr>
+  </table>
+  <div class="flow">
+    <div class="node">Cliente</div><span class="arrow">→</span>
+    <div class="node">FastAPI</div><span class="arrow">→</span>
+    <div class="node m">Redis<small>cola · estado · checkpoints</small></div><span class="arrow">→</span>
+    <div class="node o">Worker + grafo<small>con nodo HITL</small></div><span class="arrow">→</span>
+    <div class="node">Phoenix / LangSmith<small>trazas</small></div>
+  </div>
+</section>
+
+<!-- 25 · Estructura del repo -->
+<section class="slide">
+  <h2>Pre-entrega 7: así se ve el repo</h2>
+<pre>mi-api-agente/
+├── app/
+│   ├── main.py            <span class="c"># FastAPI: POST /tasks → encola y devuelve job_id · GET /tasks/{id} → estado</span>
+│   ├── graph.py           <span class="c"># tu orquestador multi-agente (clase 6) + checkpointer de Redis</span>
+│   ├── worker.py          <span class="c"># corre la tarea en segundo plano y actualiza el estado en Redis</span>
+│   │                      <span class="c">#   (PENDING / RUNNING / FAILED / DONE)</span>
+│   ├── observability.py   <span class="c"># init de Arize Phoenix o LangSmith</span>
+│   └── hitl.py            <span class="c"># nodo de aprobación: interrupt + POST /tasks/{id}/approve</span>
+├── requirements.txt
+├── docker-compose.yml     <span class="c"># (opcional) app + redis</span>
+├── .env.example           <span class="c"># REDIS_URL y claves, sin secretos reales</span>
+├── screenshots/           <span class="c"># capturas del dashboard: trazas, costo y p95</span>
+└── README.md              <span class="c"># cómo levantar Redis + la API y cómo lanzar las 5 peticiones</span></pre>
+  <table class="plain">
+    <tr><th>Paso sugerido</th><th>Qué hacer</th></tr>
+    <tr><td>1 · Refactorizar el grafo</td><td>Que use <code>RedisSaver</code> (o similar) y tenga un <b>punto de interrupción</b> en un nodo crítico.</td></tr>
+    <tr><td>2 · Observabilidad</td><td>Variables de entorno de LangSmith, o el colector de Phoenix con OpenInference.</td></tr>
+    <tr><td>3 · API y worker</td><td>FastAPI + un worker: una tarea asíncrona simple alcanza; un proceso aparte con Celery o Arq si buscás excelencia.</td></tr>
+    <tr><td>4 · Leer el dashboard</td><td>Con las 5 peticiones lanzadas: dónde se concentra la latencia y qué nodo consume más tokens.</td></tr>
+  </table>
+</section>
+
+<!-- 26 · Checklist -->
+<section class="slide">
+  <h2>Checklist de entrega</h2>
+  <table class="plain">
+    <tr><th>Revisá antes de subir</th><th>Peso en la rúbrica</th></tr>
+    <tr><td>Endpoint <b>asíncrono</b> que encola y devuelve un <code>job_id</code> sin bloquear el event loop</td><td>API asíncrona · 30%</td></tr>
+    <tr><td>Estado del job <b>persistido en Redis</b>, incluido el paso a <code>FAILED</code> ante una excepción</td><td>Redis · 25%</td></tr>
+    <tr><td><b>Trazas visibles</b> en el dashboard, más capturas del <b>costo por ejecución</b> y la <b>latencia p95</b> de las 5 peticiones, en <code>/screenshots</code></td><td>Observabilidad · 25%</td></tr>
+    <tr><td>Nodo <b>Human-in-the-loop</b> que pausa la ejecución hasta recibir una aprobación externa</td><td>HITL · 15%</td></tr>
+    <tr><td><b>README</b> (cómo iniciar Redis y la API, cómo lanzar las 5 peticiones) y <code>requirements.txt</code></td><td>Documentación · 5%</td></tr>
+  </table>
+  <div class="grid">
+    <div class="card bad">
+      <span class="tag bad">errores a evitar</span>
+      <ul class="small">
+        <li><b>Bloquear el event loop:</b> llamadas síncronas a bases de datos o LLM dentro de los endpoints, sin <code>run_in_threadpool</code> ni <code>async</code> nativo.</li>
+        <li><b>Ignorar los errores en segundo plano:</b> si el agente falla, hay que capturar la excepción y marcar <code>FAILED</code> en Redis. Si no, el cliente queda en un polling infinito.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Antes de entregar</h3>
+      <ul class="small">
+        <li>Repo <b>público</b>: probá un <code>git clone</code> en limpio.</li>
+        <li>No hay documento: las capturas son <b>evidencia</b> de las trazas, no un informe.</li>
+        <li>Las claves van en <code>.env</code>; al repo sube solo <code>.env.example</code>.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  // Envuelve el contenido de cada slide para poder escalarlo como un bloque
+  slides.forEach(sl => {
+    const w = document.createElement('div');
+    w.className = 'fit';
+    while (sl.firstChild) w.appendChild(sl.firstChild);
+    sl.appendChild(w);
+  });
+  function fit(sl){
+    const w = sl.querySelector('.fit');
+    if (!w) return;
+    if (sl.classList.contains('scroll')) { w.style.zoom = 1; return; }
+    const overflows = () => sl.scrollHeight > sl.clientHeight + 1 || sl.scrollWidth > sl.clientWidth + 1 ||
+      [...w.querySelectorAll('pre,table')].some(e => e.scrollWidth > e.clientWidth + 1);
+    let z = 1;
+    const apply = () => { w.style.zoom = z; };
+    apply();
+    while (overflows() && z > 0.4) { z = Math.round((z - 0.03) * 100) / 100; apply(); }
+  }
+  const sections = [
+    {name:'Observabilidad',    from:2,  to:5},
+    {name:'Herramientas',      from:6,  to:10},
+    {name:'FastAPI + Redis',   from:11, to:13},
+    {name:'Ejercicio 1',       from:14, to:16},
+    {name:'Human-in-the-loop', from:17, to:20},
+    {name:'Práctica HITL',     from:21, to:23},
+    {name:'Pre-entrega 7',     from:24, to:26}
+  ];
+  let i = 0;
+  const bar = document.getElementById('bar'), count = document.getElementById('count');
+  const nav = document.getElementById('nav');
+  sections.forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = s.name;
+    b.onclick = () => show(s.from - 1);
+    nav.appendChild(b);
+  });
+  function show(n){
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    fit(slides[i]);
+    bar.style.width = ((i + 1) / slides.length * 100) + '%';
+    count.textContent = (i + 1) + ' / ' + slides.length;
+    [...nav.children].forEach((b, k) => b.classList.toggle('active', i + 1 >= sections[k].from && i + 1 <= sections[k].to));
+    try { history.replaceState(null, '', '#' + (i + 1)); } catch(e) {}
+  }
+  function toggleTheme(){
+    const root = document.documentElement;
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('curso-theme', next); } catch(e) {}
+  }
+  document.getElementById('theme').onclick = toggleTheme;
+  // Lleva el tema actual (claro/oscuro) a la página siguiente
+  function conTema(url){
+    const t = document.documentElement.getAttribute('data-theme') || 'light';
+    return url + (url.includes('?') ? '&' : '?') + 'tema=' + t;
+  }
+  document.querySelectorAll('a.to-index').forEach(a => a.addEventListener('click', ev => {
+    ev.preventDefault(); location.href = conTema('index.html');
+  }));
+  document.getElementById('prev').onclick = () => show(i - 1);
+  document.getElementById('next').onclick = () => show(i + 1);
+  document.addEventListener('keydown', e => {
+    if (['ArrowRight','PageDown',' '].includes(e.key)) { e.preventDefault(); show(i + 1); }
+    else if (['ArrowLeft','PageUp'].includes(e.key)) { e.preventDefault(); show(i - 1); }
+    else if (e.key.toLowerCase() === 't') toggleTheme();
+    else if (e.key.toLowerCase() === 'i') location.href = conTema('index.html');
+    else if (e.key === 'Home') show(0);
+    else if (e.key === 'End') show(slides.length - 1);
+    else if (e.key.toLowerCase() === 'f') {
+      document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+    }
+  });
+  show((parseInt(location.hash.slice(1)) || 1) - 1);
+  window.addEventListener('resize', () => fit(slides[i]));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fit(slides[i]));
+</script>
+</body>
+</html>

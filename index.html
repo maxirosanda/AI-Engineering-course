@@ -95,7 +95,7 @@
   <span class="pill-dark">CURSO AI ENGINEERING 🚀</span>
   <span>De tu primera llamada a un modelo a <b style="color:#fff">sistemas multi-agente</b></span>
   <span class="sep"></span>
-  <span>6 semanas · 6 clases</span>
+  <span>7 semanas · 7 clases</span>
 </div>
 
 <header class="top">
@@ -124,7 +124,7 @@
   <h2>Clases</h2>
   <div class="grid" id="clases"></div>
 
-  <p class="nota">Atajo: tocá <kbd>1</kbd> a <kbd>6</kbd> para abrir esa clase · <kbd>T</kbd> cambia el tema</p>
+  <p class="nota">Atajo: tocá <kbd>1</kbd> a <kbd>7</kbd> para abrir esa clase · <kbd>T</kbd> cambia el tema</p>
 </main>
 
 <script>
@@ -135,24 +135,27 @@
   // la tarjeta se muestra como "Próximamente" y no se puede abrir.
   // =====================================================================
   const clases = [
-    { semana: 1, archivo: "",  // cuando esté lista: "semana-01-conexion-llms.html"
+    { semana: 1, archivo: "semana-01-conexion-llms.html",
       titulo: "La interfaz base: conexión y abstracción de LLMs",
-      descripcion: "Cómo conectarse a un modelo de lenguaje desde Python y trabajar con distintos proveedores de la misma manera." },
+      descripcion: "Arquitectura asíncrona con Python 3.12 (asyncio, timeouts, semáforos y streaming) y clientes de LLM intercambiables con el patrón Factory." },
     { semana: 2, archivo: "semana-02-orquestacion-langchain.html",
       titulo: "Encadenamiento lógico: orquestación con LangChain",
       descripcion: "Cadenas con LCEL: prompt, modelo y parser. Paralelismo, salidas estructuradas con Pydantic, reintentos y fallbacks." },
     { semana: 3, archivo: "semana-03-embeddings-chromadb.html",
       titulo: "Persistencia de datos y vector DBs",
       descripcion: "Embeddings, chunking y ChromaDB: cómo una IA encuentra la información correcta en tus documentos." },
-    { semana: 4, archivo: "",  // cuando esté lista: "semana-04-rag-avanzado-pinecone.html"
+    { semana: 4, archivo: "semana-04-rag-avanzado-pinecone.html",
       titulo: "Escalabilidad documental: RAG avanzado y Pinecone",
-      descripcion: "Llevar la búsqueda a grandes volúmenes de documentos con una base vectorial en la nube." },
-    { semana: 5, archivo: "",  // cuando esté lista: "semana-05-agentes-langgraph.html"
+      descripcion: "Pinecone Serverless: índices, namespaces, ingesta masiva en lotes y filtros por metadatos para llevar la búsqueda a la nube." },
+    { semana: 5, archivo: "semana-05-agentes-langgraph.html",
       titulo: "Razonamiento autónomo: introducción de agentes con LangGraph",
-      descripcion: "Una IA que decide qué pasos seguir y qué herramientas usar para resolver una tarea." },
-    { semana: 6, archivo: "",  // cuando esté lista: "semana-06-sistemas-multiagente.html"
+      descripcion: "Grafos de estado, tool calling, ciclo ReAct y memoria con checkpoints: una IA que decide qué pasos seguir y qué herramientas usar." },
+    { semana: 6, archivo: "semana-06-sistemas-multiagente.html",
       titulo: "Sistemas multi-agente: colaboración y especialización",
-      descripcion: "Varios agentes, cada uno especialista en algo, que trabajan juntos para resolver problemas más grandes." },
+      descripcion: "Topologías jerárquica y cooperativa, el patrón Supervisor y estado compartido: varios agentes especialistas que trabajan juntos." },
+    { semana: 7, archivo: "semana-07-produccion-observabilidad.html",
+      titulo: "Sistemas en producción: observabilidad, escalabilidad y supervisión",
+      descripcion: "Trazas con Arize Phoenix y LangSmith, una API asíncrona con FastAPI y Redis, y Human-in-the-Loop para las tareas críticas." },
   ];
 
   // ---------------------------------------------------------------------
@@ -200,7 +203,7 @@
   }
   document.getElementById('theme').onclick = toggleTheme;
 
-  // Atajos de teclado: 1-6 abre la clase de esa semana, T cambia el tema
+  // Atajos de teclado: 1-7 abre la clase de esa semana, T cambia el tema
   document.addEventListener('keydown', e => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key.toLowerCase() === 't') toggleTheme();
