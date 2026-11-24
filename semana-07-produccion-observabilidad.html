@@ -192,6 +192,61 @@ html,body{transition:background .3s,color .3s}
   a.round{text-decoration:none}
   .home svg{width:1.2rem;height:1.2rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .logo a{display:flex;align-items:center;text-decoration:none}
+
+  /* ===== Animaciones SVG ===== */
+  .viz{display:block;width:100%;height:auto;max-height:36vh}
+  .viz text{font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:15px;fill:var(--ink)}
+  .viz .grp{font-weight:700;fill:var(--muted);font-size:14px;letter-spacing:.04em}
+  .viz .t-ok{fill:var(--ok);font-weight:700} .viz .t-bad{fill:var(--bad);font-weight:700}
+  .viz .ah.c{fill:var(--orange)}
+  .cap{font-size:clamp(.72rem,1.05vw,.88rem)!important;color:var(--muted);text-align:center;margin-top:.4vh}
+  .viz.anim{max-height:40vh}
+  .anim .box{fill:var(--card);stroke:var(--node-line);stroke-width:2}
+  .anim .box.m{fill:var(--peach);stroke:var(--orange)}
+  .anim .box.o{fill:var(--orange);stroke:var(--orange)}
+  .anim text.wt{fill:#fff;font-weight:700}
+  .anim text.b{font-weight:700}
+  .anim .arr{stroke:var(--orange);stroke-width:3;fill:none}
+  .anim .wire{stroke:var(--line);stroke-width:3;fill:none}
+  .anim .sm{font-size:13px;fill:var(--muted)}
+  .anim .mono{font-family:"JetBrains Mono",Consolas,monospace;font-size:13px}
+  .anim .tok{fill:var(--orange);stroke:var(--ink);stroke-width:3}
+  .anim .ghost{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 4}
+  .anim .fbar{fill:var(--peach);stroke:var(--orange);stroke-width:1.5}
+  .anim .grow{transform-box:fill-box;transform-origin:left center}
+  .anim .cell{fill:var(--card);stroke:var(--line)}
+  .anim .win{fill:none;stroke:var(--orange);stroke-width:3}
+  .anim .band{fill:none;stroke:var(--ok);stroke-width:3;stroke-dasharray:7 5}
+  .anim .ph{stroke:var(--ink);stroke-width:2;stroke-dasharray:4 4}
+  .anim .w1,.anim .w2,.anim .p1,.anim .p2{opacity:0}
+  .anim .st1,.anim .st2,.anim .st3,.anim .st4,.anim .tok5,.anim .tok7,.anim .ret,.anim .w1,.anim .w2,.anim .w3,.anim .p1,.anim .p2{
+    animation-duration:12s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}
+  .anim .g1,.anim .g2,.anim .g3,.anim .ph,.anim .ap40,.anim .ap60{animation-duration:10s;animation-iteration-count:infinite;animation-timing-function:linear}
+  .anim .st1{animation-name:kst1} .anim .st2{animation-name:kst2} .anim .st3{animation-name:kst3} .anim .st4{animation-name:kst4}
+  .anim .tok5{animation-name:ktok5} .anim .tok7{animation-name:ktok7} .anim .ret{animation-name:kret}
+  .anim .w1{animation-name:kw1} .anim .w2{animation-name:kw2} .anim .w3{animation-name:kw3} .anim .p1{animation-name:kp1} .anim .p2{animation-name:kp2}
+  .anim .g1{animation-name:kg1} .anim .g2{animation-name:kg2} .anim .g3{animation-name:kg3} .anim .ph{animation-name:kph}
+  .anim .ap40{animation-name:kap40} .anim .ap60{animation-name:kap60}
+  @keyframes kst1{0%{opacity:0}6%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst2{0%,22%{opacity:0}28%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst3{0%,42%{opacity:0}48%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst4{0%,64%{opacity:0}70%,94%{opacity:1}100%{opacity:0}}
+  @keyframes ktok5{0%,4%{transform:translate(var(--x0),var(--y0))}10%,22%{transform:translate(var(--x1),var(--y1))}30%,42%{transform:translate(var(--x2),var(--y2))}50%,62%{transform:translate(var(--x3),var(--y3))}72%,100%{transform:translate(0,0)}}
+  @keyframes ktok7{0%,3%{transform:translate(var(--x0),var(--y0))}8%,16%{transform:translate(var(--x1),var(--y1))}24%,32%{transform:translate(var(--x2),var(--y2))}40%,48%{transform:translate(var(--x1),var(--y1))}56%,64%{transform:translate(var(--x3),var(--y3))}72%,80%{transform:translate(var(--x1),var(--y1))}88%,100%{transform:translate(0,0)}}
+  @keyframes kret{0%,22%{opacity:0;transform:translate(var(--dx),0)}24%{opacity:1;transform:translate(var(--dx),0)}32%,100%{opacity:1;transform:translate(0,0)}}
+  @keyframes kw1{0%,9%{opacity:0}11%,38%{opacity:1}40%,100%{opacity:0}}
+  @keyframes kw2{0%,41%{opacity:0}43%,70%{opacity:1}72%,100%{opacity:0}}
+  @keyframes kw3{0%,73%{opacity:0}75%,100%{opacity:1}}
+  @keyframes kp1{0%,25%{opacity:0}27%,48%{opacity:1}50%,100%{opacity:0}}
+  @keyframes kp2{0%,49%{opacity:0}51%,70%{opacity:1}72%,100%{opacity:0}}
+  @keyframes kg1{0%{transform:scaleX(0)}20%,100%{transform:scaleX(1)}}
+  @keyframes kg2{0%,20%{transform:scaleX(0)}40%,100%{transform:scaleX(1)}}
+  @keyframes kg3{0%,40%{transform:scaleX(0)}60%,100%{transform:scaleX(1)}}
+  @keyframes kph{0%{transform:translate(-600px,0)}60%,100%{transform:translate(0,0)}}
+  @keyframes kap40{0%,39%{opacity:0}42%,100%{opacity:1}}
+  @keyframes kap60{0%,59%{opacity:0}62%,100%{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.anim *{animation:none!important}}
+  @media print{.anim *{animation:none!important}}
 </style>
 <script>try{var q=new URLSearchParams(location.search).get('tema');var t=(q==='dark'||q==='light')?q:localStorage.getItem('curso-theme');if(q==='dark'||q==='light')localStorage.setItem('curso-theme',q);if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 </head>
@@ -459,11 +514,24 @@ LangChainInstrumentor().<span class="f">instrument</span>(
 <!-- 12 · Arquitectura desacoplada -->
 <section class="slide">
   <h2>La solución: recibir por un lado, procesar por otro</h2>
-  <div class="flow">
-    <div class="node">Cliente</div><span class="arrow">→</span>
-    <div class="node">FastAPI<small>recibe y devuelve un Job ID</small></div><span class="arrow">→</span>
-    <div class="node m">Redis<small>cola + estado de cada tarea</small></div><span class="arrow">→</span>
-    <div class="node o">Worker<small>ejecuta el grafo</small></div>
+  <div class="card" style="padding:1vh 1vw">
+    <svg class="viz anim" viewBox="0 0 900 235" role="img" aria-label="Animación: el pedido va del cliente a FastAPI, que devuelve el Job ID al instante y deja la tarea en Redis; el worker la toma y la procesa mientras el estado pasa de pending a processing y a completed">
+      <defs><marker id="ah7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><path class="ah c" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+      <rect class="box" x="20" y="90" width="120" height="60" rx="12"/><text class="b" x="80" y="126" text-anchor="middle">Cliente</text>
+      <line class="arr" x1="144" y1="120" x2="192" y2="120" marker-end="url(#ah7)"/>
+      <rect class="box" x="200" y="90" width="130" height="60" rx="12"/><text class="b" x="265" y="116" text-anchor="middle">FastAPI</text><text class="sm" x="265" y="136" text-anchor="middle">recepcionista</text>
+      <line class="arr" x1="334" y1="120" x2="402" y2="120" marker-end="url(#ah7)"/>
+      <rect class="box m" x="410" y="90" width="190" height="60" rx="12"/><text class="b" x="505" y="116" text-anchor="middle">Redis</text><text class="sm" x="505" y="136" text-anchor="middle">cola + estado</text>
+      <line class="arr" x1="604" y1="120" x2="672" y2="120" marker-end="url(#ah7)"/>
+      <rect class="box o" x="680" y="90" width="150" height="60" rx="12"/><text class="wt" x="755" y="116" text-anchor="middle">Worker</text><text class="wt" x="755" y="136" text-anchor="middle" style="font-weight:400;font-size:13px">ejecuta el grafo</text>
+      <text class="sm" x="80" y="62" text-anchor="middle">tarea</text>
+      <circle class="tok tok5" cx="755" cy="68" r="10" style="--x0:-675px;--y0:0px;--x1:-490px;--y1:0px;--x2:-250px;--y2:0px;--x3:0px;--y3:0px"/>
+      <g class="ret" style="--dx:185px"><rect class="fbar" x="42" y="164" width="76" height="26" rx="13"/><text class="mono" x="80" y="182" text-anchor="middle">Job ID</text></g>
+      <text class="sm st2" x="80" y="210" text-anchor="middle">respuesta al instante</text>
+      <text class="sm" x="505" y="180" text-anchor="middle">GET /status/&lt;job_id&gt;</text>
+      <text class="mono p1" x="505" y="206" text-anchor="middle">"status": "pending"</text><text class="mono p2" x="505" y="206" text-anchor="middle">"status": "processing"</text><text class="mono w3" x="505" y="206" text-anchor="middle">"status": "completed"</text>
+    </svg>
+    <p class="cap">La animación se repite sola · El punto es la tarea; abajo, lo que ve el cliente cuando consulta</p>
   </div>
   <table class="plain">
     <tr><th>Pieza</th><th>Rol</th><th>Qué hace</th></tr>

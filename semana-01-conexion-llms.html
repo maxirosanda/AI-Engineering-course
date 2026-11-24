@@ -192,6 +192,61 @@ html,body{transition:background .3s,color .3s}
   a.round{text-decoration:none}
   .home svg{width:1.2rem;height:1.2rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .logo a{display:flex;align-items:center;text-decoration:none}
+
+  /* ===== Animaciones SVG ===== */
+  .viz{display:block;width:100%;height:auto;max-height:36vh}
+  .viz text{font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:15px;fill:var(--ink)}
+  .viz .grp{font-weight:700;fill:var(--muted);font-size:14px;letter-spacing:.04em}
+  .viz .t-ok{fill:var(--ok);font-weight:700} .viz .t-bad{fill:var(--bad);font-weight:700}
+  .viz .ah.c{fill:var(--orange)}
+  .cap{font-size:clamp(.72rem,1.05vw,.88rem)!important;color:var(--muted);text-align:center;margin-top:.4vh}
+  .viz.anim{max-height:40vh}
+  .anim .box{fill:var(--card);stroke:var(--node-line);stroke-width:2}
+  .anim .box.m{fill:var(--peach);stroke:var(--orange)}
+  .anim .box.o{fill:var(--orange);stroke:var(--orange)}
+  .anim text.wt{fill:#fff;font-weight:700}
+  .anim text.b{font-weight:700}
+  .anim .arr{stroke:var(--orange);stroke-width:3;fill:none}
+  .anim .wire{stroke:var(--line);stroke-width:3;fill:none}
+  .anim .sm{font-size:13px;fill:var(--muted)}
+  .anim .mono{font-family:"JetBrains Mono",Consolas,monospace;font-size:13px}
+  .anim .tok{fill:var(--orange);stroke:var(--ink);stroke-width:3}
+  .anim .ghost{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 4}
+  .anim .fbar{fill:var(--peach);stroke:var(--orange);stroke-width:1.5}
+  .anim .grow{transform-box:fill-box;transform-origin:left center}
+  .anim .cell{fill:var(--card);stroke:var(--line)}
+  .anim .win{fill:none;stroke:var(--orange);stroke-width:3}
+  .anim .band{fill:none;stroke:var(--ok);stroke-width:3;stroke-dasharray:7 5}
+  .anim .ph{stroke:var(--ink);stroke-width:2;stroke-dasharray:4 4}
+  .anim .w1,.anim .w2,.anim .p1,.anim .p2{opacity:0}
+  .anim .st1,.anim .st2,.anim .st3,.anim .st4,.anim .tok5,.anim .tok7,.anim .ret,.anim .w1,.anim .w2,.anim .w3,.anim .p1,.anim .p2{
+    animation-duration:12s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}
+  .anim .g1,.anim .g2,.anim .g3,.anim .ph,.anim .ap40,.anim .ap60{animation-duration:10s;animation-iteration-count:infinite;animation-timing-function:linear}
+  .anim .st1{animation-name:kst1} .anim .st2{animation-name:kst2} .anim .st3{animation-name:kst3} .anim .st4{animation-name:kst4}
+  .anim .tok5{animation-name:ktok5} .anim .tok7{animation-name:ktok7} .anim .ret{animation-name:kret}
+  .anim .w1{animation-name:kw1} .anim .w2{animation-name:kw2} .anim .w3{animation-name:kw3} .anim .p1{animation-name:kp1} .anim .p2{animation-name:kp2}
+  .anim .g1{animation-name:kg1} .anim .g2{animation-name:kg2} .anim .g3{animation-name:kg3} .anim .ph{animation-name:kph}
+  .anim .ap40{animation-name:kap40} .anim .ap60{animation-name:kap60}
+  @keyframes kst1{0%{opacity:0}6%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst2{0%,22%{opacity:0}28%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst3{0%,42%{opacity:0}48%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst4{0%,64%{opacity:0}70%,94%{opacity:1}100%{opacity:0}}
+  @keyframes ktok5{0%,4%{transform:translate(var(--x0),var(--y0))}10%,22%{transform:translate(var(--x1),var(--y1))}30%,42%{transform:translate(var(--x2),var(--y2))}50%,62%{transform:translate(var(--x3),var(--y3))}72%,100%{transform:translate(0,0)}}
+  @keyframes ktok7{0%,3%{transform:translate(var(--x0),var(--y0))}8%,16%{transform:translate(var(--x1),var(--y1))}24%,32%{transform:translate(var(--x2),var(--y2))}40%,48%{transform:translate(var(--x1),var(--y1))}56%,64%{transform:translate(var(--x3),var(--y3))}72%,80%{transform:translate(var(--x1),var(--y1))}88%,100%{transform:translate(0,0)}}
+  @keyframes kret{0%,22%{opacity:0;transform:translate(var(--dx),0)}24%{opacity:1;transform:translate(var(--dx),0)}32%,100%{opacity:1;transform:translate(0,0)}}
+  @keyframes kw1{0%,9%{opacity:0}11%,38%{opacity:1}40%,100%{opacity:0}}
+  @keyframes kw2{0%,41%{opacity:0}43%,70%{opacity:1}72%,100%{opacity:0}}
+  @keyframes kw3{0%,73%{opacity:0}75%,100%{opacity:1}}
+  @keyframes kp1{0%,25%{opacity:0}27%,48%{opacity:1}50%,100%{opacity:0}}
+  @keyframes kp2{0%,49%{opacity:0}51%,70%{opacity:1}72%,100%{opacity:0}}
+  @keyframes kg1{0%{transform:scaleX(0)}20%,100%{transform:scaleX(1)}}
+  @keyframes kg2{0%,20%{transform:scaleX(0)}40%,100%{transform:scaleX(1)}}
+  @keyframes kg3{0%,40%{transform:scaleX(0)}60%,100%{transform:scaleX(1)}}
+  @keyframes kph{0%{transform:translate(-600px,0)}60%,100%{transform:translate(0,0)}}
+  @keyframes kap40{0%,39%{opacity:0}42%,100%{opacity:1}}
+  @keyframes kap60{0%,59%{opacity:0}62%,100%{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.anim *{animation:none!important}}
+  @media print{.anim *{animation:none!important}}
 </style>
 <script>try{var q=new URLSearchParams(location.search).get('tema');var t=(q==='dark'||q==='light')?q:localStorage.getItem('curso-theme');if(q==='dark'||q==='light')localStorage.setItem('curso-theme',q);if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 </head>
@@ -270,26 +325,24 @@ html,body{transition:background .3s,color .3s}
 <section class="slide">
   <h2>Un agente con tres pasos</h2>
   <p>Tu agente tiene que: <b>1)</b> buscar en una base vectorial, <b>2)</b> consultar una API de clima y <b>3)</b> generar la respuesta con un LLM. Cada llamada tarda <b>2 segundos</b>.</p>
-  <div class="grid">
-    <div class="card bad">
-      <span class="tag bad">síncrono (bloqueante)</span>
-      <div class="flow" style="justify-content:flex-start">
-        <div class="node">Base vectorial<small>2 s</small></div><span class="arrow">→</span>
-        <div class="node">Clima<small>2 s</small></div><span class="arrow">→</span>
-        <div class="node">LLM<small>2 s</small></div>
-      </div>
-      <p class="small" style="margin-top:1vh">Una después de la otra: <b>6 segundos</b>. Y mientras espera, el servidor <b>no atiende a nadie más</b>.</p>
-    </div>
-    <div class="card ok">
-      <span class="tag ok">asíncrono</span>
-      <div class="flow" style="justify-content:flex-start">
-        <div><div class="node m" style="margin-bottom:.6vh">Base vectorial<small>2 s</small></div><div class="node m">Clima<small>2 s</small></div></div>
-        <span class="arrow">→</span>
-        <div class="node">LLM<small>2 s</small></div>
-      </div>
-      <p class="small" style="margin-top:1vh">Las dos búsquedas esperan <b>a la vez</b>: <b>4 segundos</b>. Y durante las esperas, el servidor atiende a otros usuarios.</p>
-    </div>
+  <div class="card" style="padding:1vh 1vw">
+    <svg class="viz anim" viewBox="0 0 900 255" role="img" aria-label="Animación: en modo síncrono las tres llamadas van una después de la otra y terminan a los 6 segundos; en modo asíncrono las dos búsquedas esperan a la vez y todo termina a los 4 segundos">
+      <text class="b" x="20" y="71">Síncrono</text>
+      <rect class="ghost" x="150" y="48" width="196" height="36" rx="8"/><rect class="ghost" x="350" y="48" width="196" height="36" rx="8"/><rect class="ghost" x="550" y="48" width="196" height="36" rx="8"/>
+      <rect class="fbar grow g1" x="150" y="48" width="196" height="36" rx="8"/><rect class="fbar grow g2" x="350" y="48" width="196" height="36" rx="8"/><rect class="fbar grow g3" x="550" y="48" width="196" height="36" rx="8"/>
+      <text x="248" y="71" text-anchor="middle">Base vectorial</text><text x="448" y="71" text-anchor="middle">Clima</text><text x="648" y="71" text-anchor="middle">LLM</text>
+      <text class="t-bad ap60" x="762" y="71">listo a los 6 s</text>
+      <text class="b" x="20" y="148">Asíncrono</text>
+      <rect class="ghost" x="150" y="125" width="196" height="36" rx="8"/><rect class="ghost" x="150" y="167" width="196" height="36" rx="8"/><rect class="ghost" x="350" y="125" width="196" height="36" rx="8"/>
+      <rect class="fbar grow g1" x="150" y="125" width="196" height="36" rx="8"/><rect class="fbar grow g1" x="150" y="167" width="196" height="36" rx="8"/><rect class="fbar grow g2" x="350" y="125" width="196" height="36" rx="8"/>
+      <text x="248" y="148" text-anchor="middle">Base vectorial</text><text x="248" y="190" text-anchor="middle">Clima</text><text x="448" y="148" text-anchor="middle">LLM</text>
+      <text class="t-ok ap40" x="562" y="148">listo a los 4 s</text>
+      <line class="wire" x1="150" y1="225" x2="750" y2="225"/><line class="wire" x1="150" y1="220" x2="150" y2="230"/><text class="sm" x="150" y="248" text-anchor="middle">0 s</text><line class="wire" x1="250" y1="220" x2="250" y2="230"/><text class="sm" x="250" y="248" text-anchor="middle">1 s</text><line class="wire" x1="350" y1="220" x2="350" y2="230"/><text class="sm" x="350" y="248" text-anchor="middle">2 s</text><line class="wire" x1="450" y1="220" x2="450" y2="230"/><text class="sm" x="450" y="248" text-anchor="middle">3 s</text><line class="wire" x1="550" y1="220" x2="550" y2="230"/><text class="sm" x="550" y="248" text-anchor="middle">4 s</text><line class="wire" x1="650" y1="220" x2="650" y2="230"/><text class="sm" x="650" y="248" text-anchor="middle">5 s</text><line class="wire" x1="750" y1="220" x2="750" y2="230"/><text class="sm" x="750" y="248" text-anchor="middle">6 s</text>
+      <line class="ph" x1="750" y1="36" x2="750" y2="225"/>
+    </svg>
+    <p class="cap">La animación se repite sola · La línea punteada es el paso del tiempo</p>
   </div>
+  <p class="small">En el modo <b>síncrono</b>, además, mientras el programa espera <b>no atiende a nadie más</b>. En el <b>asíncrono</b>, durante las esperas el servidor sigue atendiendo a otros usuarios.</p>
   <p class="note">El LLM necesita los resultados de las búsquedas, así que va después. Lo que <b>no depende entre sí</b> se puede esperar al mismo tiempo.</p>
 </section>
 

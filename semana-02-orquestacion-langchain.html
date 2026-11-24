@@ -165,6 +165,61 @@ html,body{transition:background .3s,color .3s}
   a.round{text-decoration:none}
   .home svg{width:1.2rem;height:1.2rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .logo a{display:flex;align-items:center;text-decoration:none}
+
+  /* ===== Animaciones SVG ===== */
+  .viz{display:block;width:100%;height:auto;max-height:36vh}
+  .viz text{font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:15px;fill:var(--ink)}
+  .viz .grp{font-weight:700;fill:var(--muted);font-size:14px;letter-spacing:.04em}
+  .viz .t-ok{fill:var(--ok);font-weight:700} .viz .t-bad{fill:var(--bad);font-weight:700}
+  .viz .ah.c{fill:var(--orange)}
+  .cap{font-size:clamp(.72rem,1.05vw,.88rem)!important;color:var(--muted);text-align:center;margin-top:.4vh}
+  .viz.anim{max-height:40vh}
+  .anim .box{fill:var(--card);stroke:var(--node-line);stroke-width:2}
+  .anim .box.m{fill:var(--peach);stroke:var(--orange)}
+  .anim .box.o{fill:var(--orange);stroke:var(--orange)}
+  .anim text.wt{fill:#fff;font-weight:700}
+  .anim text.b{font-weight:700}
+  .anim .arr{stroke:var(--orange);stroke-width:3;fill:none}
+  .anim .wire{stroke:var(--line);stroke-width:3;fill:none}
+  .anim .sm{font-size:13px;fill:var(--muted)}
+  .anim .mono{font-family:"JetBrains Mono",Consolas,monospace;font-size:13px}
+  .anim .tok{fill:var(--orange);stroke:var(--ink);stroke-width:3}
+  .anim .ghost{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 4}
+  .anim .fbar{fill:var(--peach);stroke:var(--orange);stroke-width:1.5}
+  .anim .grow{transform-box:fill-box;transform-origin:left center}
+  .anim .cell{fill:var(--card);stroke:var(--line)}
+  .anim .win{fill:none;stroke:var(--orange);stroke-width:3}
+  .anim .band{fill:none;stroke:var(--ok);stroke-width:3;stroke-dasharray:7 5}
+  .anim .ph{stroke:var(--ink);stroke-width:2;stroke-dasharray:4 4}
+  .anim .w1,.anim .w2,.anim .p1,.anim .p2{opacity:0}
+  .anim .st1,.anim .st2,.anim .st3,.anim .st4,.anim .tok5,.anim .tok7,.anim .ret,.anim .w1,.anim .w2,.anim .w3,.anim .p1,.anim .p2{
+    animation-duration:12s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}
+  .anim .g1,.anim .g2,.anim .g3,.anim .ph,.anim .ap40,.anim .ap60{animation-duration:10s;animation-iteration-count:infinite;animation-timing-function:linear}
+  .anim .st1{animation-name:kst1} .anim .st2{animation-name:kst2} .anim .st3{animation-name:kst3} .anim .st4{animation-name:kst4}
+  .anim .tok5{animation-name:ktok5} .anim .tok7{animation-name:ktok7} .anim .ret{animation-name:kret}
+  .anim .w1{animation-name:kw1} .anim .w2{animation-name:kw2} .anim .w3{animation-name:kw3} .anim .p1{animation-name:kp1} .anim .p2{animation-name:kp2}
+  .anim .g1{animation-name:kg1} .anim .g2{animation-name:kg2} .anim .g3{animation-name:kg3} .anim .ph{animation-name:kph}
+  .anim .ap40{animation-name:kap40} .anim .ap60{animation-name:kap60}
+  @keyframes kst1{0%{opacity:0}6%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst2{0%,22%{opacity:0}28%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst3{0%,42%{opacity:0}48%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst4{0%,64%{opacity:0}70%,94%{opacity:1}100%{opacity:0}}
+  @keyframes ktok5{0%,4%{transform:translate(var(--x0),var(--y0))}10%,22%{transform:translate(var(--x1),var(--y1))}30%,42%{transform:translate(var(--x2),var(--y2))}50%,62%{transform:translate(var(--x3),var(--y3))}72%,100%{transform:translate(0,0)}}
+  @keyframes ktok7{0%,3%{transform:translate(var(--x0),var(--y0))}8%,16%{transform:translate(var(--x1),var(--y1))}24%,32%{transform:translate(var(--x2),var(--y2))}40%,48%{transform:translate(var(--x1),var(--y1))}56%,64%{transform:translate(var(--x3),var(--y3))}72%,80%{transform:translate(var(--x1),var(--y1))}88%,100%{transform:translate(0,0)}}
+  @keyframes kret{0%,22%{opacity:0;transform:translate(var(--dx),0)}24%{opacity:1;transform:translate(var(--dx),0)}32%,100%{opacity:1;transform:translate(0,0)}}
+  @keyframes kw1{0%,9%{opacity:0}11%,38%{opacity:1}40%,100%{opacity:0}}
+  @keyframes kw2{0%,41%{opacity:0}43%,70%{opacity:1}72%,100%{opacity:0}}
+  @keyframes kw3{0%,73%{opacity:0}75%,100%{opacity:1}}
+  @keyframes kp1{0%,25%{opacity:0}27%,48%{opacity:1}50%,100%{opacity:0}}
+  @keyframes kp2{0%,49%{opacity:0}51%,70%{opacity:1}72%,100%{opacity:0}}
+  @keyframes kg1{0%{transform:scaleX(0)}20%,100%{transform:scaleX(1)}}
+  @keyframes kg2{0%,20%{transform:scaleX(0)}40%,100%{transform:scaleX(1)}}
+  @keyframes kg3{0%,40%{transform:scaleX(0)}60%,100%{transform:scaleX(1)}}
+  @keyframes kph{0%{transform:translate(-600px,0)}60%,100%{transform:translate(0,0)}}
+  @keyframes kap40{0%,39%{opacity:0}42%,100%{opacity:1}}
+  @keyframes kap60{0%,59%{opacity:0}62%,100%{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.anim *{animation:none!important}}
+  @media print{.anim *{animation:none!important}}
 </style>
 <script>try{var q=new URLSearchParams(location.search).get('tema');var t=(q==='dark'||q==='light')?q:localStorage.getItem('curso-theme');if(q==='dark'||q==='light')localStorage.setItem('curso-theme',q);if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 </head>
@@ -318,14 +373,20 @@ response = chain.<span class="f">invoke</span>({<span class="s">"language"</span
 <!-- 6 -->
 <section class="slide">
   <h2>Qué viaja por dentro de la cadena</h2>
-  <div class="flow">
-    <div class="node">dict<small>{language, text}</small></div><span class="arrow">→</span>
-    <div class="node">prompt</div><span class="arrow">→</span>
-    <div class="node">ChatPromptValue</div><span class="arrow">→</span>
-    <div class="node m">model</div><span class="arrow">→</span>
-    <div class="node">AIMessage</div><span class="arrow">→</span>
-    <div class="node o">parser</div><span class="arrow">→</span>
-    <div class="node">str</div>
+  <div class="card" style="padding:1vh 1vw">
+    <svg class="viz anim" viewBox="0 0 900 215" role="img" aria-label="Animación: un dato recorre la cadena. Entra un dict, el prompt lo convierte en ChatPromptValue, el modelo en AIMessage y el parser en str">
+      <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><path class="ah c" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+      <line class="wire" x1="20" y1="110" x2="880" y2="110"/>
+      <rect class="box" x="130" y="80" width="140" height="60" rx="12"/><text class="b" x="200" y="116" text-anchor="middle">prompt</text>
+      <rect class="box m" x="380" y="80" width="140" height="60" rx="12"/><text class="b" x="450" y="116" text-anchor="middle">model</text>
+      <rect class="box o" x="630" y="80" width="140" height="60" rx="12"/><text class="wt" x="700" y="116" text-anchor="middle">parser</text>
+      <g class="st1"><text class="b" x="65" y="58" text-anchor="middle">dict</text><text class="mono" x="65" y="172" text-anchor="middle">{language,</text><text class="mono" x="65" y="190" text-anchor="middle">text}</text></g>
+      <g class="st2"><text class="b" x="325" y="58" text-anchor="middle">ChatPromptValue</text><text class="mono" x="325" y="172" text-anchor="middle">"Translate</text><text class="mono" x="325" y="190" text-anchor="middle">to Spanish…"</text></g>
+      <g class="st3"><text class="b" x="575" y="58" text-anchor="middle">AIMessage</text><text class="mono" x="575" y="172" text-anchor="middle">content="Hola"</text><text class="mono" x="575" y="190" text-anchor="middle">+ metadata</text></g>
+      <g class="st4"><text class="b" x="835" y="58" text-anchor="middle">str</text><text class="mono" x="835" y="172" text-anchor="middle">"Hola"</text></g>
+      <circle class="tok tok5" cx="835" cy="110" r="10" style="--x0:-770px;--y0:0px;--x1:-770px;--y1:0px;--x2:-510px;--y2:0px;--x3:-260px;--y3:0px"/>
+    </svg>
+    <p class="cap">La animación se repite sola · Arriba, el tipo de dato; abajo, un ejemplo de su contenido</p>
   </div>
 <pre>p1 = prompt.invoke({<span class="s">"language"</span>: <span class="s">"Spanish"</span>, <span class="s">"text"</span>: <span class="s">"Hello"</span>})  <span class="c"># ChatPromptValue</span>
 p2 = model.invoke(p1)                                          <span class="c"># AIMessage</span>

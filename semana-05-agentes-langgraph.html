@@ -192,6 +192,61 @@ html,body{transition:background .3s,color .3s}
   a.round{text-decoration:none}
   .home svg{width:1.2rem;height:1.2rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .logo a{display:flex;align-items:center;text-decoration:none}
+
+  /* ===== Animaciones SVG ===== */
+  .viz{display:block;width:100%;height:auto;max-height:36vh}
+  .viz text{font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:15px;fill:var(--ink)}
+  .viz .grp{font-weight:700;fill:var(--muted);font-size:14px;letter-spacing:.04em}
+  .viz .t-ok{fill:var(--ok);font-weight:700} .viz .t-bad{fill:var(--bad);font-weight:700}
+  .viz .ah.c{fill:var(--orange)}
+  .cap{font-size:clamp(.72rem,1.05vw,.88rem)!important;color:var(--muted);text-align:center;margin-top:.4vh}
+  .viz.anim{max-height:40vh}
+  .anim .box{fill:var(--card);stroke:var(--node-line);stroke-width:2}
+  .anim .box.m{fill:var(--peach);stroke:var(--orange)}
+  .anim .box.o{fill:var(--orange);stroke:var(--orange)}
+  .anim text.wt{fill:#fff;font-weight:700}
+  .anim text.b{font-weight:700}
+  .anim .arr{stroke:var(--orange);stroke-width:3;fill:none}
+  .anim .wire{stroke:var(--line);stroke-width:3;fill:none}
+  .anim .sm{font-size:13px;fill:var(--muted)}
+  .anim .mono{font-family:"JetBrains Mono",Consolas,monospace;font-size:13px}
+  .anim .tok{fill:var(--orange);stroke:var(--ink);stroke-width:3}
+  .anim .ghost{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 4}
+  .anim .fbar{fill:var(--peach);stroke:var(--orange);stroke-width:1.5}
+  .anim .grow{transform-box:fill-box;transform-origin:left center}
+  .anim .cell{fill:var(--card);stroke:var(--line)}
+  .anim .win{fill:none;stroke:var(--orange);stroke-width:3}
+  .anim .band{fill:none;stroke:var(--ok);stroke-width:3;stroke-dasharray:7 5}
+  .anim .ph{stroke:var(--ink);stroke-width:2;stroke-dasharray:4 4}
+  .anim .w1,.anim .w2,.anim .p1,.anim .p2{opacity:0}
+  .anim .st1,.anim .st2,.anim .st3,.anim .st4,.anim .tok5,.anim .tok7,.anim .ret,.anim .w1,.anim .w2,.anim .w3,.anim .p1,.anim .p2{
+    animation-duration:12s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}
+  .anim .g1,.anim .g2,.anim .g3,.anim .ph,.anim .ap40,.anim .ap60{animation-duration:10s;animation-iteration-count:infinite;animation-timing-function:linear}
+  .anim .st1{animation-name:kst1} .anim .st2{animation-name:kst2} .anim .st3{animation-name:kst3} .anim .st4{animation-name:kst4}
+  .anim .tok5{animation-name:ktok5} .anim .tok7{animation-name:ktok7} .anim .ret{animation-name:kret}
+  .anim .w1{animation-name:kw1} .anim .w2{animation-name:kw2} .anim .w3{animation-name:kw3} .anim .p1{animation-name:kp1} .anim .p2{animation-name:kp2}
+  .anim .g1{animation-name:kg1} .anim .g2{animation-name:kg2} .anim .g3{animation-name:kg3} .anim .ph{animation-name:kph}
+  .anim .ap40{animation-name:kap40} .anim .ap60{animation-name:kap60}
+  @keyframes kst1{0%{opacity:0}6%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst2{0%,22%{opacity:0}28%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst3{0%,42%{opacity:0}48%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst4{0%,64%{opacity:0}70%,94%{opacity:1}100%{opacity:0}}
+  @keyframes ktok5{0%,4%{transform:translate(var(--x0),var(--y0))}10%,22%{transform:translate(var(--x1),var(--y1))}30%,42%{transform:translate(var(--x2),var(--y2))}50%,62%{transform:translate(var(--x3),var(--y3))}72%,100%{transform:translate(0,0)}}
+  @keyframes ktok7{0%,3%{transform:translate(var(--x0),var(--y0))}8%,16%{transform:translate(var(--x1),var(--y1))}24%,32%{transform:translate(var(--x2),var(--y2))}40%,48%{transform:translate(var(--x1),var(--y1))}56%,64%{transform:translate(var(--x3),var(--y3))}72%,80%{transform:translate(var(--x1),var(--y1))}88%,100%{transform:translate(0,0)}}
+  @keyframes kret{0%,22%{opacity:0;transform:translate(var(--dx),0)}24%{opacity:1;transform:translate(var(--dx),0)}32%,100%{opacity:1;transform:translate(0,0)}}
+  @keyframes kw1{0%,9%{opacity:0}11%,38%{opacity:1}40%,100%{opacity:0}}
+  @keyframes kw2{0%,41%{opacity:0}43%,70%{opacity:1}72%,100%{opacity:0}}
+  @keyframes kw3{0%,73%{opacity:0}75%,100%{opacity:1}}
+  @keyframes kp1{0%,25%{opacity:0}27%,48%{opacity:1}50%,100%{opacity:0}}
+  @keyframes kp2{0%,49%{opacity:0}51%,70%{opacity:1}72%,100%{opacity:0}}
+  @keyframes kg1{0%{transform:scaleX(0)}20%,100%{transform:scaleX(1)}}
+  @keyframes kg2{0%,20%{transform:scaleX(0)}40%,100%{transform:scaleX(1)}}
+  @keyframes kg3{0%,40%{transform:scaleX(0)}60%,100%{transform:scaleX(1)}}
+  @keyframes kph{0%{transform:translate(-600px,0)}60%,100%{transform:translate(0,0)}}
+  @keyframes kap40{0%,39%{opacity:0}42%,100%{opacity:1}}
+  @keyframes kap60{0%,59%{opacity:0}62%,100%{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.anim *{animation:none!important}}
+  @media print{.anim *{animation:none!important}}
 </style>
 <script>try{var q=new URLSearchParams(location.search).get('tema');var t=(q==='dark'||q==='light')?q:localStorage.getItem('curso-theme');if(q==='dark'||q==='light')localStorage.setItem('curso-theme',q);if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 </head>
@@ -819,11 +874,26 @@ db = MockVectorDB()
     <div class="node o">Responder<small>cuando ya no hacen falta herramientas</small></div>
   </div>
   <p>En LangGraph se arma con <b>dos nodos y una arista condicional</b>:</p>
-  <div class="flow">
-    <div class="node">START</div><span class="arrow">→</span>
-    <div class="node m">agent<small>el LLM con las tools</small></div><span class="arrow">→</span>
-    <div class="node">tools_condition<small>¿pidió una herramienta?</small></div><span class="arrow">→</span>
-    <div><div class="node" style="margin-bottom:.5vh">sí → tools → vuelve a agent<small>ToolNode ejecuta</small></div><div class="node o">no → END</div></div>
+  <div class="card" style="padding:1vh 1vw">
+    <svg class="viz anim" style="max-height:34vh" viewBox="0 0 900 270" role="img" aria-label="Animación del ciclo ReAct: la ejecución va de START al agente, del agente a las herramientas, vuelve al agente y termina en END, mientras la lista de mensajes del estado crece de uno a cuatro">
+      <defs><marker id="ah5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><path class="ah c" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+      <rect class="box" x="20" y="100" width="90" height="40" rx="20"/><text class="b" x="65" y="126" text-anchor="middle">START</text>
+      <line class="arr" x1="114" y1="120" x2="212" y2="120" marker-end="url(#ah5)"/>
+      <rect class="box m" x="220" y="90" width="140" height="60" rx="12"/><text class="b" x="290" y="116" text-anchor="middle">agent</text><text class="sm" x="290" y="136" text-anchor="middle">el LLM</text>
+      <path class="arr" d="M360,104 C420,66 460,66 514,102" marker-end="url(#ah5)"/><text class="sm" x="440" y="58" text-anchor="middle">pidió una herramienta</text>
+      <path class="arr" d="M520,136 C460,174 420,174 366,138" marker-end="url(#ah5)"/><text class="sm" x="440" y="192" text-anchor="middle">resultado</text>
+      <rect class="box" x="520" y="90" width="140" height="60" rx="12"/><text class="b" x="590" y="116" text-anchor="middle">tools</text><text class="sm" x="590" y="136" text-anchor="middle">ToolNode</text>
+      <line class="arr" x1="290" y1="154" x2="290" y2="212" marker-end="url(#ah5)"/><text class="sm" x="300" y="188">sin tool_calls</text>
+      <rect class="box o" x="245" y="218" width="90" height="40" rx="20"/><text class="wt" x="290" y="244" text-anchor="middle">END</text>
+      <text class="grp" x="700" y="40">state["messages"]</text>
+      <rect class="box" x="690" y="52" width="200" height="150" rx="12"/>
+      <text class="sm st1" x="702" y="80">1 · Human: ¿clima en Madrid?</text>
+      <text class="sm st2" x="702" y="112">2 · AI: pide get_weather</text>
+      <text class="sm st3" x="702" y="144">3 · Tool: Soleado, 22°C</text>
+      <text class="sm st4" x="702" y="176">4 · AI: respuesta final</text>
+      <circle class="tok tok5" cx="249" cy="220" r="9" style="--x0:-225px;--y0:-118px;--x1:-25px;--y1:-128px;--x2:275px;--y2:-128px;--x3:-25px;--y3:-128px"/>
+    </svg>
+    <p class="cap">La animación se repite sola · El punto es la ejecución; a la derecha, cómo crece el historial</p>
   </div>
   <p class="note">El LLM puede usar <b>tres herramientas distintas</b> antes de responder. Cada vuelta suma mensajes al historial (el pedido y la observación). <code>ToolNode</code> y <code>tools_condition</code> ya vienen hechos en <code>langgraph.prebuilt</code>.</p>
 </section>
@@ -1099,7 +1169,7 @@ Respuesta: "El cliente 102 tuvo 3 pedidos por un total de $14.500."</pre>
     while (overflows() && z > 0.4) { z = Math.round((z - 0.03) * 100) / 100; apply(); }
   }
   const sections = [
-    {name:'Por qué grafos',  from:2,  to:4},
+    {name:'Por qué',         from:2,  to:4},
     {name:'Estado y nodos',  from:5,  to:10},
     {name:'Ejemplos',        from:11, to:15},
     {name:'Tool calling',    from:16, to:19},

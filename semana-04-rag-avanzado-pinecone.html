@@ -192,6 +192,43 @@ html,body{transition:background .3s,color .3s}
   a.round{text-decoration:none}
   .home svg{width:1.2rem;height:1.2rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .logo a{display:flex;align-items:center;text-decoration:none}
+
+  /* ===== Animaciones SVG: cómo funciona una base vectorial ===== */
+  .viz.anim{max-height:42vh}
+  .anim .box{fill:var(--card);stroke:var(--node-line);stroke-width:2}
+  .anim .box.m{fill:var(--peach);stroke:var(--orange)}
+  .anim .map{fill:var(--card);stroke:var(--line);stroke-width:2}
+  .anim .ln{stroke:var(--muted);stroke-width:3;stroke-linecap:round}
+  .anim .arr{stroke:var(--orange);stroke-width:3;fill:none}
+  .anim .sm{font-size:13px;fill:var(--muted)}
+  .anim .mono{font-family:"JetBrains Mono",Consolas,monospace;font-size:13px}
+  .anim .old{fill:var(--muted);opacity:.55}
+  .anim .q{fill:var(--ink);stroke:var(--orange);stroke-width:4}
+  .anim .radar{fill:var(--okbg);stroke:var(--ok);stroke-width:2;stroke-dasharray:6 5;transform-box:fill-box;transform-origin:center}
+  .anim .hl{fill:var(--ok)}
+  .anim .dim4{opacity:.3} .anim .dim2{opacity:.35}
+  .anim .st1,.anim .st2,.anim .st3,.anim .st4,.anim .flyA,.anim .flyB,.anim .radar,.anim .hl,.anim .dim2,.anim .dim4{
+    animation-duration:12s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}
+  .anim .st1{animation-name:kst1} .anim .st2{animation-name:kst2} .anim .st3{animation-name:kst3} .anim .st4{animation-name:kst4}
+  .anim .flyA{animation-name:kflyA} .anim .flyB{animation-name:kflyB} .anim .radar{animation-name:kradar}
+  .anim .hl{animation-name:khl} .anim .dim2{animation-name:kdim2} .anim .dim4{animation-name:kdim4}
+  @keyframes kst1{0%{opacity:0}6%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst2{0%,22%{opacity:0}28%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst3{0%,42%{opacity:0}48%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst4{0%,64%{opacity:0}70%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kflyA{0%,46%{opacity:0;transform:translate(var(--dx),var(--dy))}49%{opacity:1;transform:translate(var(--dx),var(--dy))}64%,94%{opacity:1;transform:translate(0,0)}100%{opacity:0;transform:translate(0,0)}}
+  @keyframes kflyB{0%,26%{opacity:0;transform:translate(var(--dx),var(--dy))}29%{opacity:1;transform:translate(var(--dx),var(--dy))}44%,94%{opacity:1;transform:translate(0,0)}100%{opacity:0;transform:translate(0,0)}}
+  @keyframes kradar{0%,46%{opacity:0;transform:scale(0)}48%{opacity:1;transform:scale(0)}62%,94%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+  @keyframes khl{0%,66%{fill:var(--orange)}70%,94%{fill:var(--ok)}100%{fill:var(--orange)}}
+  @keyframes kdim2{0%,22%{opacity:1}28%,94%{opacity:.35}100%{opacity:1}}
+  @keyframes kdim4{0%,66%{opacity:1}70%,94%{opacity:.3}100%{opacity:1}}
+  .anim .fbar{fill:var(--peach);stroke:var(--orange);stroke-width:1.5}
+  .anim .win{fill:none;stroke:var(--orange);stroke-width:3}
+  .anim .ghost{fill:none;stroke:var(--muted);stroke-width:2;stroke-dasharray:5 4}
+  .anim .cell{fill:var(--card);stroke:var(--node-line);stroke-width:2}
+  .anim .ival{font-family:"JetBrains Mono",Consolas,monospace;font-size:14px;fill:var(--orange-d);font-weight:500}
+  @media (prefers-reduced-motion:reduce){.anim *{animation:none!important}}
+  @media print{.anim *{animation:none!important}}
 </style>
 <script>try{var q=new URLSearchParams(location.search).get('tema');var t=(q==='dark'||q==='light')?q:localStorage.getItem('curso-theme');if(q==='dark'||q==='light')localStorage.setItem('curso-theme',q);if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 </head>
@@ -400,6 +437,153 @@ index.<span class="f">query</span>(vector=consulta, top_k=<span class="w">5</spa
   <p class="note">El tercero es el más peligroso: <b>no avisa</b>. El sistema funciona, pero encuentra peor.</p>
 </section>
 
+
+<!-- A · Animación: ingesta -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Por dentro · 1 de 3</span>
+  <h2>Cómo se guarda un documento</h2>
+  <div class="card" style="padding:1.2vh 1vw">
+    <svg class="viz anim" viewBox="0 0 900 290" role="img" aria-label="Animación: un documento se corta en tres pedazos, un modelo de embeddings convierte cada pedazo en un vector, y cada vector queda guardado como un punto en la base vectorial">
+      <defs><marker id="ahA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><path class="ah c" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+      <!-- documento -->
+      <g class="st1">
+        <rect class="box" x="20" y="70" width="100" height="140" rx="8"/>
+        <line class="ln" x1="36" y1="95" x2="104" y2="95"/><line class="ln" x1="36" y1="115" x2="104" y2="115"/><line class="ln" x1="36" y1="135" x2="90" y2="135"/>
+        <line class="ln" x1="36" y1="160" x2="104" y2="160"/><line class="ln" x1="36" y1="180" x2="80" y2="180"/>
+        <text x="70" y="234" text-anchor="middle">Documento</text>
+      </g>
+      <!-- pedazos -->
+      <g class="st2">
+        <line class="arr" x1="126" y1="140" x2="162" y2="140" marker-end="url(#ahA)"/>
+        <rect class="box" x="170" y="60" width="115" height="44" rx="8"/><text x="227" y="88" text-anchor="middle">Devoluciones</text>
+        <rect class="box" x="170" y="118" width="115" height="44" rx="8"/><text x="227" y="146" text-anchor="middle">Envíos</text>
+        <rect class="box" x="170" y="176" width="115" height="44" rx="8"/><text x="227" y="204" text-anchor="middle">Garantía</text>
+        <text class="sm" x="227" y="244" text-anchor="middle">3 pedazos (chunks)</text>
+      </g>
+      <!-- modelo -->
+      <g class="st3">
+        <line class="arr" x1="291" y1="140" x2="332" y2="140" marker-end="url(#ahA)"/>
+        <rect class="box m" x="340" y="100" width="130" height="80" rx="10"/>
+        <text x="405" y="135" text-anchor="middle">Modelo de</text><text x="405" y="156" text-anchor="middle">embeddings</text>
+        <text class="mono" x="405" y="210" text-anchor="middle">[0.9, 0.1, …]</text>
+        <text class="mono" x="405" y="230" text-anchor="middle">[0.2, 0.8, …]</text>
+        <text class="mono" x="405" y="250" text-anchor="middle">[0.5, 0.5, …]</text>
+        <line class="arr" x1="476" y1="140" x2="632" y2="140" marker-end="url(#ahA)"/>
+      </g>
+      <!-- base vectorial -->
+      <g class="st1">
+        <text class="grp" x="760" y="20" text-anchor="middle">BASE VECTORIAL</text>
+        <rect class="map" x="640" y="30" width="240" height="240" rx="14"/>
+        <circle class="old" cx="680" cy="70" r="5"/><circle class="old" cx="850" cy="110" r="5"/><circle class="old" cx="830" cy="230" r="5"/><circle class="old" cx="670" cy="185" r="5"/>
+      </g>
+      <circle class="pt flyA" cx="715" cy="105" r="7" style="--dx:-230px;--dy:35px"/>
+      <circle class="pt flyA" cx="790" cy="165" r="7" style="--dx:-305px;--dy:-25px;animation-delay:.35s"/>
+      <circle class="pt flyA" cx="735" cy="225" r="7" style="--dx:-250px;--dy:-85px;animation-delay:.7s"/>
+      <g class="st4">
+        <text class="sm" x="727" y="110">devoluciones</text><text class="sm" x="802" y="170">envíos</text><text class="sm" x="747" y="230">garantía</text>
+      </g>
+    </svg>
+    <p class="cap">La animación se repite sola · Ejemplo ilustrativo, reducido a 2 dimensiones</p>
+  </div>
+  <div class="flow">
+    <div class="node">1. Cortar<small>el documento en pedazos</small></div><span class="arrow">→</span>
+    <div class="node m">2. Convertir<small>cada pedazo en un vector</small></div><span class="arrow">→</span>
+    <div class="node o">3. Guardar<small>cada vector es un punto</small></div>
+  </div>
+  <p class="note">Cada punto guarda tres cosas: un <b>id</b>, sus <b>números</b> (el vector) y sus <b>metadatos</b> (el texto original, la fuente, la categoría). Los pedazos que hablan de lo mismo quedan <b>cerca</b>.</p>
+</section>
+
+<!-- B · Animación: búsqueda -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Por dentro · 2 de 3</span>
+  <h2>Cómo se busca una respuesta</h2>
+  <div class="card" style="padding:1.2vh 1vw">
+    <svg class="viz anim" viewBox="0 0 900 290" role="img" aria-label="Animación: la pregunta se convierte en un vector con el mismo modelo, cae como un punto nuevo en el mapa, y se eligen los tres puntos guardados más cercanos">
+      <defs><marker id="ahB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><path class="ah c" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+      <g class="st1">
+        <rect class="box" x="15" y="105" width="200" height="70" rx="12"/>
+        <text x="115" y="135" text-anchor="middle">"¿Cuánto tarda</text><text x="115" y="157" text-anchor="middle">un envío?"</text>
+        <text class="sm" x="115" y="198" text-anchor="middle">la pregunta del usuario</text>
+        <!-- mapa con lo ya guardado -->
+        <text class="grp" x="665" y="14" text-anchor="middle">BASE VECTORIAL</text>
+        <rect class="map" x="450" y="22" width="430" height="258" rx="14"/>
+        <text class="sm" x="768" y="84">envíos</text><text class="sm" x="490" y="182">devoluciones</text><text class="sm" x="790" y="192">garantía</text><text class="sm" x="520" y="58">pagos</text>
+      </g>
+      <g class="st1">
+        <circle class="pt dim4" cx="520" cy="200" r="6"/><circle class="pt dim4" cx="560" cy="230" r="6"/><circle class="pt dim4" cx="510" cy="245" r="6"/>
+        <circle class="pt dim4" cx="820" cy="212" r="6"/><circle class="pt dim4" cx="790" cy="246" r="6"/><circle class="pt dim4" cx="842" cy="252" r="6"/>
+        <circle class="pt dim4" cx="540" cy="74" r="6"/><circle class="pt dim4" cx="580" cy="98" r="6"/>
+      </g>
+      <g class="st2">
+        <line class="arr" x1="221" y1="140" x2="244" y2="140" marker-end="url(#ahB)"/>
+        <rect class="box m" x="252" y="105" width="130" height="70" rx="10"/>
+        <text x="317" y="135" text-anchor="middle">El mismo</text><text x="317" y="156" text-anchor="middle">modelo</text>
+        <text class="mono" x="415" y="96" text-anchor="middle">[0.2, 0.8, …]</text>
+        <line class="arr" x1="388" y1="140" x2="442" y2="140" marker-end="url(#ahB)"/>
+      </g>
+      <circle class="radar" cx="715" cy="120" r="62"/>
+      <g class="st4">
+        <line class="near" x1="715" y1="120" x2="690" y2="95"/><line class="near" x1="715" y1="120" x2="740" y2="122"/><line class="near" x1="715" y1="120" x2="700" y2="152"/>
+        <text class="t-ok" x="705" y="46" text-anchor="middle">los 3 más cercanos (top_k = 3)</text>
+      </g>
+      <g class="st1">
+        <circle class="hl" cx="690" cy="95" r="7"/><circle class="hl" cx="740" cy="122" r="7"/><circle class="hl" cx="700" cy="152" r="7"/>
+      </g>
+      <circle class="q flyB" cx="715" cy="120" r="8" style="--dx:-300px;--dy:20px"/>
+    </svg>
+    <p class="cap">La animación se repite sola · El punto con borde es la pregunta; el círculo punteado, la zona de "vecinos más cercanos"</p>
+  </div>
+  <div class="flow">
+    <div class="node">1. Convertir<small>la pregunta en un vector</small></div><span class="arrow">→</span>
+    <div class="node m">2. Ubicar<small>ese punto en el mapa</small></div><span class="arrow">→</span>
+    <div class="node">3. Medir<small>qué puntos quedan más cerca</small></div><span class="arrow">→</span>
+    <div class="node o">4. Devolver<small>los top_k, con su texto</small></div>
+  </div>
+  <p class="note">La base <b>no busca palabras</b>: busca <b>cercanía</b>. La pregunta dice "tarda" y el documento dice "demoran 48 horas", pero caen en la misma zona. Esos 3 pedazos son el contexto que recibe el LLM.</p>
+</section>
+
+<!-- C · Animación: filtro -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Por dentro · 3 de 3</span>
+  <h2>Cómo actúa el filtro por metadatos</h2>
+  <div class="card" style="padding:1.2vh 1vw">
+    <svg class="viz anim" viewBox="0 0 900 290" role="img" aria-label="Animación: los puntos tienen forma según su categoría. Al aplicar el filtro category igual a legal, los cuadrados y triángulos se apagan, y la búsqueda elige los tres círculos más cercanos, aunque había un cuadrado más cerca">
+      <!-- leyenda -->
+      <text class="grp" x="15" y="30">CATEGORÍA (metadato)</text>
+      <circle class="pt" cx="28" cy="58" r="6"/><text x="46" y="63">legal</text>
+      <rect class="pt" x="22" y="80" width="12" height="12"/><text x="46" y="91">hr</text>
+      <polygon class="pt" points="28,106 20,120 36,120"/><text x="46" y="119">finanzas</text>
+      <circle class="q" cx="160" cy="58" r="7"/><text x="178" y="63">pregunta</text>
+      <g class="st2">
+        <rect class="box m" x="15" y="150" width="262" height="56" rx="10"/>
+        <text class="sm" x="28" y="171">filtro</text>
+        <text class="mono" x="28" y="193">category = "legal"</text>
+      </g>
+      <g class="st4"><text class="t-ok" x="15" y="246">3 resultados, todos de legal</text><text class="sm" x="15" y="266">el cuadrado más cercano quedó afuera</text></g>
+      <!-- mapa -->
+      <rect class="map" x="300" y="14" width="580" height="268" rx="14"/>
+      <circle class="radar" cx="560" cy="150" r="82"/>
+      <g class="dim2">
+        <rect class="pt" x="579" y="134" width="12" height="12"/><rect class="pt" x="634" y="84" width="12" height="12"/><rect class="pt" x="464" y="84" width="12" height="12"/><rect class="pt" x="694" y="214" width="12" height="12"/>
+        <polygon class="pt" points="420,142 412,156 428,156"/><polygon class="pt" points="740,142 732,156 748,156"/><polygon class="pt" points="600,52 592,66 608,66"/>
+      </g>
+      <g class="dim4"><circle class="pt" cx="800" cy="80" r="6"/><circle class="pt" cx="380" cy="230" r="6"/><circle class="pt" cx="820" cy="240" r="6"/></g>
+      <g class="st4"><line class="near" x1="560" y1="150" x2="520" y2="190"/><line class="near" x1="560" y1="150" x2="610" y2="200"/><line class="near" x1="560" y1="150" x2="500" y2="110"/></g>
+      <circle class="hl" cx="520" cy="190" r="7"/><circle class="hl" cx="610" cy="200" r="7"/><circle class="hl" cx="500" cy="110" r="7"/>
+      <g class="st1"><circle class="q" cx="560" cy="150" r="8"/></g>
+    </svg>
+    <p class="cap">La animación se repite sola · La forma de cada punto indica su categoría</p>
+  </div>
+<pre>index.<span class="f">query</span>(vector=pregunta, top_k=<span class="w">3</span>, filter={<span class="s">"category"</span>: {<span class="s">"$eq"</span>: <span class="s">"legal"</span>}})</pre>
+  <div class="flow">
+    <div class="node">1. Llega la pregunta</div><span class="arrow">→</span>
+    <div class="node m">2. Filtro<small>se apaga lo que no es legal</small></div><span class="arrow">→</span>
+    <div class="node">3. Cercanía<small>solo entre lo que quedó</small></div><span class="arrow">→</span>
+    <div class="node o">4. Top 3</div>
+  </div>
+  <p class="note">Sin el filtro, el resultado más cercano habría sido un documento de <b>hr</b>. El filtro es de sí o no: lo que no cumple <b>ni siquiera compite</b>. Un <b>namespace</b> funciona parecido, pero más fuerte: es otro mapa aparte.</p>
+</section>
+
 <!-- 10 · Ejercicio 1: consigna -->
 <section class="slide">
   <h2>Ejercicio 1: qué tenés que hacer</h2>
@@ -538,12 +722,36 @@ NAMESPACE = <span class="s">"dev-environment"</span>
       <p class="small"><b>Un viaje con el carrito lleno.</b> Menos llamadas de red, y Pinecone procesa cada lote aprovechando su paralelismo interno.</p>
     </div>
   </div>
-<pre>batch_size = <span class="w">100</span>
-<span class="c"># range(0, total, 100) da 0, 100, 200...: el inicio de cada lote</span>
+<pre>batch_size = <span class="w">100</span>                              <span class="c"># cuántos vectores van en cada lote</span>
+
+<span class="c"># i NO es un vector: es la POSICIÓN de la lista donde empieza cada lote.</span>
+<span class="c"># range(0, total, 100) va saltando de a 100: 0, 100, 200...</span>
 <span class="k">for</span> i <span class="k">in</span> range(<span class="w">0</span>, len(vectors), batch_size):
-    lote = vectors[i : i + batch_size]      <span class="c"># hasta 100 vectores</span>
-    index.<span class="f">upsert</span>(vectors=lote, namespace=<span class="s">"prod"</span>)  <span class="c"># una llamada por lote</span></pre>
-  <p class="note"><b>Tamaño ideal:</b> entre <b>100 y 200 vectores</b> por lote suele ser el "punto dulce" entre velocidad y estabilidad. Lotes demasiado grandes pueden superar el tamaño máximo por pedido.</p>
+
+    <span class="c"># lista[desde : hasta] "recorta" un pedazo de la lista (sin incluir "hasta").</span>
+    <span class="c"># i + batch_size no suma nada a los vectores: calcula DÓNDE TERMINA el lote.</span>
+    lote = vectors[i : i + batch_size]
+
+    index.<span class="f">upsert</span>(vectors=lote, namespace=<span class="s">"prod"</span>)   <span class="c"># una sola llamada por lote</span></pre>
+  <p class="small"><b>Ejemplo: una lista de 250 vectores</b> (posiciones 0 a 249)</p>
+  <div class="card" style="padding:1vh 1vw">
+    <svg class="viz anim" style="max-height:30vh" viewBox="0 0 940 215" role="img" aria-label="Animación: una lista de 250 vectores se recorta en tres lotes. El primero va de la posición 0 a la 100, el segundo de la 100 a la 200 y el tercero de la 200 a la 300, pero como la lista termina en 250 solo trae 50">
+      <text class="grp" x="50" y="20">LISTA DE 250 VECTORES</text>
+      <rect class="cell" x="50" y="50" width="700" height="40" rx="6"/>
+      <text class="sm" x="750" y="108" text-anchor="middle">250</text>
+      <g class="st1"><rect class="win" x="50" y="46" width="280" height="48" rx="6"/><text class="mono" x="190" y="38" text-anchor="middle">vectors[0:100]</text><text class="ival" x="50" y="108">i = 0</text>
+        <rect class="fbar" x="50" y="124" width="276" height="34" rx="8"/><text x="188" y="146" text-anchor="middle">Lote 1 · 100 vectores</text></g>
+      <g class="st2"><rect class="win" x="330" y="46" width="280" height="48" rx="6"/><text class="mono" x="470" y="38" text-anchor="middle">vectors[100:200]</text><text class="ival" x="330" y="108">i = 100</text>
+        <rect class="fbar" x="330" y="124" width="276" height="34" rx="8"/><text x="468" y="146" text-anchor="middle">Lote 2 · 100 vectores</text></g>
+      <g class="st3"><rect class="win" x="610" y="46" width="140" height="48" rx="6"/><rect class="ghost" x="754" y="46" width="136" height="48" rx="6"/>
+        <text class="mono" x="750" y="38" text-anchor="middle">vectors[200:300]</text><text class="ival" x="610" y="108">i = 200</text>
+        <text class="sm" x="822" y="75" text-anchor="middle">no hay nada</text><text class="sm" x="890" y="108" text-anchor="middle">300</text>
+        <rect class="fbar" x="610" y="124" width="140" height="34" rx="8"/><text x="680" y="146" text-anchor="middle">Lote 3 · 50</text></g>
+      <text class="t-ok st4" x="400" y="196" text-anchor="middle">3 llamadas a upsert en vez de 250</text>
+    </svg>
+    <p class="cap">La animación se repite sola · El recuadro naranja es el recorte <code>vectors[i : i + 100]</code> de cada vuelta</p>
+  </div>
+  <p class="note">Si el final se pasa del largo de la lista (300 &gt; 250), Python <b>no da error</b>: devuelve lo que haya. Por eso el último lote sale más chico. Resultado: <b>3 llamadas</b> a Pinecone en vez de 250. <b>Tamaño ideal:</b> entre 100 y 200 vectores por lote.</p>
 </section>
 
 <!-- 15 · Metadatos como filtro -->
@@ -949,13 +1157,14 @@ docs = hibrido.<span class="f">invoke</span>(<span class="s">"¿Cómo configuro 
     while (overflows() && z > 0.4) { z = Math.round((z - 0.03) * 100) / 100; apply(); }
   }
   const sections = [
-    {name:'Por qué Pinecone', from:2,  to:4},
-    {name:'Conceptos clave',  from:5,  to:9},
-    {name:'Ejercicio 1',      from:10, to:12},
-    {name:'Ingesta masiva',   from:13, to:14},
-    {name:'Metadatos',        from:15, to:18},
-    {name:'Ejercicio 2',      from:19, to:22},
-    {name:'Pre-entrega 4',    from:23, to:27}
+    {name:'Por qué',          from:2,  to:4},
+    {name:'Conceptos',        from:5,  to:9},
+    {name:'Por dentro',       from:10, to:12},
+    {name:'Ejercicio 1',      from:13, to:15},
+    {name:'Ingesta',          from:16, to:17},
+    {name:'Metadatos',        from:18, to:21},
+    {name:'Ejercicio 2',      from:22, to:25},
+    {name:'Pre-entrega 4',    from:26, to:30}
   ];
   let i = 0;
   const bar = document.getElementById('bar'), count = document.getElementById('count');

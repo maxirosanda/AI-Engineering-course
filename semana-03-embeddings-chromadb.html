@@ -192,6 +192,61 @@ html,body{transition:background .3s,color .3s}
   a.round{text-decoration:none}
   .home svg{width:1.2rem;height:1.2rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .logo a{display:flex;align-items:center;text-decoration:none}
+
+  /* ===== Animaciones SVG ===== */
+  .viz{display:block;width:100%;height:auto;max-height:36vh}
+  .viz text{font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:15px;fill:var(--ink)}
+  .viz .grp{font-weight:700;fill:var(--muted);font-size:14px;letter-spacing:.04em}
+  .viz .t-ok{fill:var(--ok);font-weight:700} .viz .t-bad{fill:var(--bad);font-weight:700}
+  .viz .ah.c{fill:var(--orange)}
+  .cap{font-size:clamp(.72rem,1.05vw,.88rem)!important;color:var(--muted);text-align:center;margin-top:.4vh}
+  .viz.anim{max-height:40vh}
+  .anim .box{fill:var(--card);stroke:var(--node-line);stroke-width:2}
+  .anim .box.m{fill:var(--peach);stroke:var(--orange)}
+  .anim .box.o{fill:var(--orange);stroke:var(--orange)}
+  .anim text.wt{fill:#fff;font-weight:700}
+  .anim text.b{font-weight:700}
+  .anim .arr{stroke:var(--orange);stroke-width:3;fill:none}
+  .anim .wire{stroke:var(--line);stroke-width:3;fill:none}
+  .anim .sm{font-size:13px;fill:var(--muted)}
+  .anim .mono{font-family:"JetBrains Mono",Consolas,monospace;font-size:13px}
+  .anim .tok{fill:var(--orange);stroke:var(--ink);stroke-width:3}
+  .anim .ghost{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 4}
+  .anim .fbar{fill:var(--peach);stroke:var(--orange);stroke-width:1.5}
+  .anim .grow{transform-box:fill-box;transform-origin:left center}
+  .anim .cell{fill:var(--card);stroke:var(--line)}
+  .anim .win{fill:none;stroke:var(--orange);stroke-width:3}
+  .anim .band{fill:none;stroke:var(--ok);stroke-width:3;stroke-dasharray:7 5}
+  .anim .ph{stroke:var(--ink);stroke-width:2;stroke-dasharray:4 4}
+  .anim .w1,.anim .w2,.anim .p1,.anim .p2{opacity:0}
+  .anim .st1,.anim .st2,.anim .st3,.anim .st4,.anim .tok5,.anim .tok7,.anim .ret,.anim .w1,.anim .w2,.anim .w3,.anim .p1,.anim .p2{
+    animation-duration:12s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}
+  .anim .g1,.anim .g2,.anim .g3,.anim .ph,.anim .ap40,.anim .ap60{animation-duration:10s;animation-iteration-count:infinite;animation-timing-function:linear}
+  .anim .st1{animation-name:kst1} .anim .st2{animation-name:kst2} .anim .st3{animation-name:kst3} .anim .st4{animation-name:kst4}
+  .anim .tok5{animation-name:ktok5} .anim .tok7{animation-name:ktok7} .anim .ret{animation-name:kret}
+  .anim .w1{animation-name:kw1} .anim .w2{animation-name:kw2} .anim .w3{animation-name:kw3} .anim .p1{animation-name:kp1} .anim .p2{animation-name:kp2}
+  .anim .g1{animation-name:kg1} .anim .g2{animation-name:kg2} .anim .g3{animation-name:kg3} .anim .ph{animation-name:kph}
+  .anim .ap40{animation-name:kap40} .anim .ap60{animation-name:kap60}
+  @keyframes kst1{0%{opacity:0}6%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst2{0%,22%{opacity:0}28%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst3{0%,42%{opacity:0}48%,94%{opacity:1}100%{opacity:0}}
+  @keyframes kst4{0%,64%{opacity:0}70%,94%{opacity:1}100%{opacity:0}}
+  @keyframes ktok5{0%,4%{transform:translate(var(--x0),var(--y0))}10%,22%{transform:translate(var(--x1),var(--y1))}30%,42%{transform:translate(var(--x2),var(--y2))}50%,62%{transform:translate(var(--x3),var(--y3))}72%,100%{transform:translate(0,0)}}
+  @keyframes ktok7{0%,3%{transform:translate(var(--x0),var(--y0))}8%,16%{transform:translate(var(--x1),var(--y1))}24%,32%{transform:translate(var(--x2),var(--y2))}40%,48%{transform:translate(var(--x1),var(--y1))}56%,64%{transform:translate(var(--x3),var(--y3))}72%,80%{transform:translate(var(--x1),var(--y1))}88%,100%{transform:translate(0,0)}}
+  @keyframes kret{0%,22%{opacity:0;transform:translate(var(--dx),0)}24%{opacity:1;transform:translate(var(--dx),0)}32%,100%{opacity:1;transform:translate(0,0)}}
+  @keyframes kw1{0%,9%{opacity:0}11%,38%{opacity:1}40%,100%{opacity:0}}
+  @keyframes kw2{0%,41%{opacity:0}43%,70%{opacity:1}72%,100%{opacity:0}}
+  @keyframes kw3{0%,73%{opacity:0}75%,100%{opacity:1}}
+  @keyframes kp1{0%,25%{opacity:0}27%,48%{opacity:1}50%,100%{opacity:0}}
+  @keyframes kp2{0%,49%{opacity:0}51%,70%{opacity:1}72%,100%{opacity:0}}
+  @keyframes kg1{0%{transform:scaleX(0)}20%,100%{transform:scaleX(1)}}
+  @keyframes kg2{0%,20%{transform:scaleX(0)}40%,100%{transform:scaleX(1)}}
+  @keyframes kg3{0%,40%{transform:scaleX(0)}60%,100%{transform:scaleX(1)}}
+  @keyframes kph{0%{transform:translate(-600px,0)}60%,100%{transform:translate(0,0)}}
+  @keyframes kap40{0%,39%{opacity:0}42%,100%{opacity:1}}
+  @keyframes kap60{0%,59%{opacity:0}62%,100%{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.anim *{animation:none!important}}
+  @media print{.anim *{animation:none!important}}
 </style>
 <script>try{var q=new URLSearchParams(location.search).get('tema');var t=(q==='dark'||q==='light')?q:localStorage.getItem('curso-theme');if(q==='dark'||q==='light')localStorage.setItem('curso-theme',q);if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 </head>
@@ -578,13 +633,19 @@ a, b, c = [d.embedding <span class="k">for</span> d <span class="k">in</span> re
 <section class="slide">
   <h2>Paso 3: dejar un poco de repetición (overlap)</h2>
   <p><b>Overlap</b> significa "solapamiento": el final de un pedazo se repite al principio del siguiente.</p>
-  <div class="flow">
-    <div class="node">Pedazo 1<small>"...dentro de los 30 días corridos desde la compra, siempre que conserven el"</small></div>
-    <span class="arrow">⇄</span>
-    <div class="node m">Se repite<small>"desde la compra, siempre que conserven el"</small></div>
-    <span class="arrow">⇄</span>
-    <div class="node o">Pedazo 2<small>"desde la compra, siempre que conserven el ticket."</small></div>
+  <div class="card" style="padding:1vh 1vw">
+    <svg class="viz anim" viewBox="0 0 900 250" role="img" aria-label="Animación: un texto de 20 tokens se corta en pedazos de 10 con overlap de 2. Los últimos dos tokens de cada pedazo se repiten al principio del siguiente">
+      <text class="grp" x="450" y="24" text-anchor="middle">20 TOKENS · chunk_size = 10 · chunk_overlap = 2</text>
+      <rect class="cell" x="50" y="40" width="40" height="36"/><text class="sm" x="70" y="63" text-anchor="middle">1</text><rect class="cell" x="90" y="40" width="40" height="36"/><text class="sm" x="110" y="63" text-anchor="middle">2</text><rect class="cell" x="130" y="40" width="40" height="36"/><text class="sm" x="150" y="63" text-anchor="middle">3</text><rect class="cell" x="170" y="40" width="40" height="36"/><text class="sm" x="190" y="63" text-anchor="middle">4</text><rect class="cell" x="210" y="40" width="40" height="36"/><text class="sm" x="230" y="63" text-anchor="middle">5</text><rect class="cell" x="250" y="40" width="40" height="36"/><text class="sm" x="270" y="63" text-anchor="middle">6</text><rect class="cell" x="290" y="40" width="40" height="36"/><text class="sm" x="310" y="63" text-anchor="middle">7</text><rect class="cell" x="330" y="40" width="40" height="36"/><text class="sm" x="350" y="63" text-anchor="middle">8</text><rect class="cell" x="370" y="40" width="40" height="36"/><text class="sm" x="390" y="63" text-anchor="middle">9</text><rect class="cell" x="410" y="40" width="40" height="36"/><text class="sm" x="430" y="63" text-anchor="middle">10</text><rect class="cell" x="450" y="40" width="40" height="36"/><text class="sm" x="470" y="63" text-anchor="middle">11</text><rect class="cell" x="490" y="40" width="40" height="36"/><text class="sm" x="510" y="63" text-anchor="middle">12</text><rect class="cell" x="530" y="40" width="40" height="36"/><text class="sm" x="550" y="63" text-anchor="middle">13</text><rect class="cell" x="570" y="40" width="40" height="36"/><text class="sm" x="590" y="63" text-anchor="middle">14</text><rect class="cell" x="610" y="40" width="40" height="36"/><text class="sm" x="630" y="63" text-anchor="middle">15</text><rect class="cell" x="650" y="40" width="40" height="36"/><text class="sm" x="670" y="63" text-anchor="middle">16</text><rect class="cell" x="690" y="40" width="40" height="36"/><text class="sm" x="710" y="63" text-anchor="middle">17</text><rect class="cell" x="730" y="40" width="40" height="36"/><text class="sm" x="750" y="63" text-anchor="middle">18</text><rect class="cell" x="770" y="40" width="40" height="36"/><text class="sm" x="790" y="63" text-anchor="middle">19</text><rect class="cell" x="810" y="40" width="40" height="36"/><text class="sm" x="830" y="63" text-anchor="middle">20</text>
+      <g class="st1"><rect class="win" x="50" y="36" width="400" height="44" rx="6"/><rect class="fbar" x="50" y="108" width="400" height="30" rx="6"/><text x="250" y="128" text-anchor="middle">Pedazo 1 · tokens 1 a 10</text></g>
+      <g class="st2"><rect class="win" x="370" y="36" width="400" height="44" rx="6"/><rect class="fbar" x="370" y="148" width="400" height="30" rx="6"/><text x="570" y="168" text-anchor="middle">Pedazo 2 · tokens 9 a 18</text></g>
+      <g class="st3"><rect class="win" x="690" y="36" width="160" height="44" rx="6"/><rect class="fbar" x="690" y="188" width="160" height="30" rx="6"/><text x="770" y="208" text-anchor="middle">Pedazo 3 · 17 a 20</text></g>
+      <g class="st4"><rect class="band" x="370" y="32" width="80" height="150" rx="6"/><rect class="band" x="690" y="32" width="80" height="190" rx="6"/>
+        <text class="t-ok" x="410" y="202" text-anchor="middle">se repite</text><text class="t-ok" x="730" y="242" text-anchor="middle">se repite</text></g>
+    </svg>
+    <p class="cap">La animación se repite sola · Cada casillero es un token</p>
   </div>
+  <p class="small"><b>Con el texto del ejercicio:</b> el pedazo 1 termina en <code>"…desde la compra, siempre que conserven el"</code> y el pedazo 2 empieza con <code>"desde la compra, siempre que conserven el ticket."</code></p>
   <p class="note"><b>¿Para qué?</b> Si una idea importante cae justo donde se corta, el overlap hace que aparezca <b>completa en al menos un pedazo</b>. Es como cuando un capítulo de una serie arranca con "en el capítulo anterior...".</p>
 </section>
 
