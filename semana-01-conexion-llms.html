@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clase: Arquitectura asíncrona con Python 3.12</title>
+<link rel="icon" type="image/png" href="https://framerusercontent.com/images/BYaKbm7V4jKpNmcij4dQFyirq5U.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root{
+    --orange:#ff6329; --orange-d:#e24d14; --cream:#fdfbf6; --ink:#1e0b08; --muted:#6f5f58;
+    --card:#ffffff; --code-bg:#1e0b08; --th-bg:#1e0b08; --btn-dark:#1e0b08; --btn-hover:#3a1b14; --pillbg:#1e0b08; --node-line:#1e0b08; --hover:#f6efe6; --body:#3a2a25; --glow2:#fff1e8; --okbg:#dcf5e6; --badbg:#fde1e1; --line:#eadfd3; --peach:#ffe9de; --ok:#1f9d55; --bad:#d93f3f; --warn:#f5a623;
+  }
+  @media screen{
+  :root[data-theme="dark"]{
+    --cream:#150b08; --ink:#f7ede4; --muted:#b9a89f; --card:#241410; --line:#3a2620; --peach:#3a1e14;
+    --orange-d:#ff9a6b; --ok:#4cd98a; --bad:#ff7a7a; --warn:#f5a623;
+    --code-bg:#0d0605; --th-bg:#3a1e14; --btn-dark:#3a2620; --btn-hover:#523228; --pillbg:#0d0605;
+    --node-line:#6b4a3e; --hover:#2a1913; --body:#e6d8cf; --glow2:#2a150d;
+    --okbg:rgba(76,217,138,.16); --badbg:rgba(255,122,122,.16);
+  }
+}
+html,body{transition:background .3s,color .3s}
+*{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--cream);color:var(--ink);overflow:hidden;
+    font-family:"Plus Jakarta Sans","Poppins","Segoe UI",system-ui,-apple-system,sans-serif}
+  body{display:flex;flex-direction:column}
+
+  .announce{background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;
+    gap:1.2vw;padding:1.1vh 2vw;font-size:clamp(.72rem,1.2vw,1rem);flex-wrap:wrap;text-align:center}
+  .announce .pill-dark{background:var(--pillbg);padding:.35em 1em;border-radius:99px;font-weight:700;color:#fff}
+  .announce .sep{width:1px;height:1.2em;background:rgba(255,255,255,.7)}
+
+  .top{position:relative;display:flex;align-items:center;justify-content:space-between;gap:2vw;
+    padding:1.5vh 3vw;background:var(--cream);border-bottom:1px solid var(--line)}
+  .logo{display:flex;align-items:center;min-width:8rem}
+  .logo img{height:2.2rem;display:block}
+  .wordmark{font-weight:800;font-size:1.7rem;letter-spacing:-.05em;text-transform:uppercase;color:var(--ink)}
+  .wordmark i{font-style:normal;color:var(--orange);margin:0 .04em}
+  nav{display:flex;gap:.3vw;flex-wrap:wrap;justify-content:center}
+  nav button{background:none;border:0;font:inherit;font-weight:500;font-size:clamp(.78rem,1.15vw,1rem);
+    padding:.6em 1em;border-radius:99px;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:.45em;
+    transition:background .2s}
+  nav button::after{content:"";width:12px;height:12px;background:no-repeat center/contain
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236f5f58' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}
+  nav button:hover{background:var(--hover)}
+  nav button.active{background:var(--peach);color:var(--orange-d);font-weight:700}
+  .actions{display:flex;align-items:center;gap:.7vw}
+  .theme svg{width:1.25rem;height:1.25rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .theme .sun{display:none}
+  :root[data-theme="dark"] .theme .sun{display:block}
+  :root[data-theme="dark"] .theme .moon{display:none}
+  .btn-orange{background:var(--orange);color:#fff;border:0;border-radius:99px;padding:.8em 1.7em;
+    font:inherit;font-weight:700;font-size:clamp(.8rem,1.1vw,1rem);cursor:pointer;transition:background .2s}
+  .btn-orange:hover{background:var(--orange-d)}
+  .round{width:2.9rem;height:2.9rem;border-radius:50%;border:0;background:var(--btn-dark);color:#fff;cursor:pointer;
+    font:inherit;font-size:1.1rem;display:flex;align-items:center;justify-content:center}
+  .round:hover{background:var(--btn-hover)}
+  .counter{background:var(--btn-dark);color:#fff;border-radius:99px;padding:0 1.1em;height:2.9rem;
+    display:flex;align-items:center;font-weight:600;font-size:.9rem;white-space:nowrap}
+  .bar{position:absolute;left:0;bottom:-1px;height:4px;background:var(--orange);width:0;transition:width .3s}
+
+  .deck{position:relative;flex:1;min-height:0;
+    background:radial-gradient(circle at 94% 8%,var(--peach) 0,transparent 30%),
+               radial-gradient(circle at 4% 98%,var(--glow2) 0,transparent 26%),var(--cream)}
+  .slide{position:absolute;inset:0;padding:3.5vh 7vw 4vh;display:none;flex-direction:column;
+    justify-content:center;gap:2vh;animation:fade .35s ease;overflow:auto}
+  .slide.active{display:flex}
+  @keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+  h1{font-size:clamp(2.4rem,6vw,4.6rem);line-height:1.05;font-weight:800;letter-spacing:-.04em}
+  h1 .hl{color:var(--orange)}
+  h2{font-size:clamp(1.6rem,3.3vw,2.6rem);font-weight:800;letter-spacing:-.03em;line-height:1.1}
+  h2::after{content:"";display:block;width:3.4rem;height:.32rem;border-radius:99px;background:var(--orange);margin-top:.45em}
+  h3{font-size:clamp(1.05rem,1.8vw,1.45rem);font-weight:700;margin-bottom:.35em;display:flex;align-items:center;gap:.5em}
+  h3::before{content:"";width:.7em;height:.7em;border-radius:50%;background:var(--orange);flex:none}
+  p,li{font-size:clamp(1rem,1.8vw,1.4rem);line-height:1.55;color:var(--body)}
+  b{color:var(--ink)}
+  .sub{color:var(--muted);font-size:clamp(1.05rem,2.1vw,1.6rem)}
+  ul{list-style:none;display:flex;flex-direction:column;gap:1vh}
+  li{padding-left:1.7em;position:relative}
+  li::before{content:"";position:absolute;left:0;top:.45em;width:.9em;height:.9em;border-radius:50%;
+    background:var(--peach);border:2px solid var(--orange)}
+  code{font-family:"JetBrains Mono","Cascadia Code",Consolas,monospace;background:var(--peach);color:var(--orange-d);
+    padding:.08em .45em;border-radius:7px;font-size:.88em;font-weight:500}
+
+  pre{background:var(--code-bg);border-radius:18px;padding:2vh 1.8vw;overflow:auto;
+    font-family:"JetBrains Mono","Cascadia Code",Consolas,monospace;font-size:clamp(.75rem,1.4vw,1.1rem);
+    line-height:1.6;color:#f6ebe2;box-shadow:0 10px 30px rgba(30,11,8,.18)}
+  pre .k{color:#ff8a5c} pre .c{color:#9a8880} pre .s{color:#9be3a5} pre .f{color:#ffc46b} pre .w{color:#ffd98a}
+
+  .grid{display:grid;gap:2vw;grid-template-columns:1fr 1fr;align-items:start}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:2.2vh 1.7vw;
+    box-shadow:0 8px 24px rgba(30,11,8,.06)}
+  .card pre{box-shadow:none;margin-top:.6vh}
+  .card.ok{border-top:5px solid var(--ok)} .card.bad{border-top:5px solid var(--bad)}
+  .tag{display:inline-flex;align-items:center;gap:.4em;font-size:.82rem;font-weight:700;padding:.3em 1em;
+    border-radius:99px;margin-bottom:.7em;background:var(--peach);color:var(--orange-d)}
+  .tag.ok{background:var(--okbg);color:var(--ok)} .tag.ok::before{content:"✓";font-weight:800}
+  .tag.bad{background:var(--badbg);color:var(--bad)} .tag.bad::before{content:"✕";font-weight:800}
+
+  table{border-collapse:separate;border-spacing:0;width:100%;background:var(--card);border:1px solid var(--line);
+    border-radius:16px;overflow:hidden;font-size:clamp(.85rem,1.5vw,1.18rem)}
+  th{background:var(--th-bg);color:#fff;text-align:left;padding:1.1vh 1.2vw;font-weight:700}
+  td{padding:1vh 1.2vw;border-bottom:1px solid var(--line)}
+  tr:last-child td{border-bottom:0}
+  td:first-child{font-family:"JetBrains Mono","Cascadia Code",Consolas,monospace;color:var(--orange-d);font-weight:500}
+
+  .flow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:.8vw}
+  .node{background:var(--card);border:2px solid var(--node-line);border-radius:14px;padding:1.2vh 1.2vw;text-align:center;
+    font-weight:600;font-size:clamp(.8rem,1.45vw,1.15rem)}
+  .node small{display:block;color:var(--muted);font-weight:400;font-size:.75em;margin-top:.3em;
+    font-family:"JetBrains Mono",Consolas,monospace}
+  .node.m{border-color:var(--orange);background:var(--peach)}
+  .node.o{background:var(--orange);border-color:var(--orange);color:#fff}
+  .node.o small{color:rgba(255,255,255,.85)}
+  .arrow{color:var(--orange);font-size:1.8rem;font-weight:800}
+
+  .note{background:var(--peach);border-left:6px solid var(--orange);padding:1.3vh 1.5vw;border-radius:12px;
+    font-size:clamp(.92rem,1.6vw,1.25rem)}
+  .big{font-size:clamp(1.3rem,2.6vw,2rem);text-align:center;font-weight:600;line-height:1.35}
+  .center{text-align:center;align-items:center}
+  .center .tag{margin-bottom:0}
+
+  @media (max-width:900px){nav{display:none}.grid{grid-template-columns:1fr}.slide{justify-content:flex-start}}
+  @media print{
+    html,body{overflow:visible;height:auto}
+    body{display:block}
+    .announce,.top{display:none}
+    .deck{position:static;background:#fff}
+    .slide{position:static;display:flex!important;page-break-after:always;height:100vh;animation:none}
+  }
+
+  /* ===== Ajustes de layout: header compacto, sin scroll en código ===== */
+  .announce{padding:.55vh 2vw;font-size:clamp(.68rem,1vw,.9rem);gap:1vw}
+  .announce .pill-dark{padding:.2em .8em}
+  .top{padding:1vh 2.5vw;gap:1.2vw}
+  .logo{min-width:0}
+  .logo img{height:1.8rem}
+  .wordmark{font-size:1.4rem}
+  nav{flex:1;min-width:0;flex-wrap:nowrap;gap:.1vw}
+  nav button{white-space:nowrap;font-size:clamp(.7rem,.95vw,.9rem);padding:.45em .7em}
+  nav button::after{display:none}
+  .actions{gap:.5vw;flex:none}
+  .btn-orange{white-space:nowrap;padding:.6em 1.2em;font-size:clamp(.78rem,1vw,.95rem)}
+  .round{width:2.4rem;height:2.4rem}
+  .counter{height:2.4rem;white-space:nowrap;padding:0 .9em;font-size:.85rem}
+
+  .slide{padding:2.2vh 6vw 2.8vh;gap:1.5vh;overflow:hidden}
+  .fit{display:flex;flex-direction:column;gap:inherit;align-items:inherit;justify-content:center;transform-origin:top left}
+  p,li{line-height:1.45}
+  pre{overflow:hidden;padding:1.5vh 1.5vw;font-size:clamp(.7rem,1.2vw,1rem);line-height:1.5}
+  .card{padding:1.8vh 1.4vw}
+
+  @media (max-width:1100px){nav{display:none}}
+  @media print{.fit{zoom:1!important;width:100%!important}}
+
+  /* ===== Diapositiva con código largo: scroll interno en vez de achicar ===== */
+  .slide.scroll .fit{height:100%;justify-content:flex-start}
+  .slide.scroll .grid{flex:1;min-height:0}
+  .slide.scroll .card{display:flex;flex-direction:column;min-height:0}
+  .slide.scroll .card pre{flex:1;min-height:0;overflow:auto;font-size:clamp(.78rem,1.15vw,1rem)}
+  @media print{.slide.scroll .card pre{overflow:visible}}
+
+  /* ===== Gráficos SVG (mapa de significados, flechas del coseno) ===== */
+  .viz{display:block;width:100%;height:auto;max-height:36vh}
+  .viz text{font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:15px;fill:var(--ink)}
+  .viz .grp{font-weight:700;fill:var(--muted);font-size:14px;letter-spacing:.04em}
+  .viz .cl{fill:var(--peach);stroke:var(--orange);stroke-width:1.5;stroke-dasharray:5 5;opacity:.7}
+  .viz .pt{fill:var(--orange)}
+  .viz .org{fill:var(--muted)}
+  .viz .near{stroke:var(--ok);stroke-width:3}
+  .viz .far{stroke:var(--bad);stroke-width:2.5;stroke-dasharray:7 6}
+  .viz .t-ok{fill:var(--ok);font-weight:700}
+  .viz .t-bad{fill:var(--bad);font-weight:700}
+  .viz .vec{stroke:var(--ink);stroke-width:3;fill:none}
+  .viz .vec.c{stroke:var(--orange)}
+  .viz .ah{fill:var(--ink)}
+  .viz .ah.c{fill:var(--orange)}
+  .viz .arc-ok{stroke:var(--ok);stroke-width:4;fill:none}
+  .viz .arc-bad{stroke:var(--bad);stroke-width:4;fill:none}
+  .viz .lbl{font-weight:800;font-size:20px}
+  .cap{font-size:clamp(.72rem,1.05vw,.88rem)!important;color:var(--muted);text-align:center;margin-top:.4vh}
+  .c-ok{color:var(--ok);font-weight:700} .c-bad{color:var(--bad);font-weight:700}
+  /* Tablas cuya primera columna es texto común (no código) */
+  table.plain td:first-child{font-family:inherit;color:var(--ink);font-weight:700}
+  .small, .small li{font-size:clamp(.85rem,1.4vw,1.1rem)}
+  /* Código largo: que se desplace dentro de la tarjeta en vez de empujarla */
+  .slide.scroll .fit{width:100%}
+  .slide.scroll .grid, .slide.scroll .card, .slide.scroll .card pre{min-width:0;max-width:100%}
+  /* ===== Botón para volver al índice ===== */
+  a.round{text-decoration:none}
+  .home svg{width:1.2rem;height:1.2rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .logo a{display:flex;align-items:center;text-decoration:none}
+</style>
+<script>try{var q=new URLSearchParams(location.search).get('tema');var t=(q==='dark'||q==='light')?q:localStorage.getItem('curso-theme');if(q==='dark'||q==='light')localStorage.setItem('curso-theme',q);if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+</head>
+<body>
+<div class="announce">
+  <span class="pill-dark">CLASE ASYNC ⏳</span>
+  <span>Convertí la espera en <b style="color:#fff">trabajo útil</b> con asyncio</span>
+  <span class="sep"></span>
+  <span>Clase del 03/11</span>
+</div>
+<header class="top">
+  <div class="logo">
+    <a href="index.html" class="to-index" title="Volver al índice">
+    <img id="ulogo" src="logo.png" alt="" onload="document.getElementById('flogo').style.display='none'" onerror="this.style.display='none'">
+    <span id="flogo" class="wordmark">ASYNC<i>|</i>Class</span>
+    </a>
+  </div>
+  <nav id="nav"></nav>
+  <div class="actions">
+    <a class="round home to-index" href="index.html" title="Volver al índice (I)" aria-label="Volver al índice del curso">
+      <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg>
+    </a>
+    <button class="round theme" id="theme" title="Cambiar tema (T)" aria-label="Cambiar entre modo claro y oscuro">
+      <svg class="moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+    <button class="round" id="prev" title="Anterior">←</button>
+    <button class="btn-orange" id="next">Siguiente →</button>
+    <div class="counter" id="count"></div>
+  </div>
+  <div class="bar" id="bar"></div>
+</header>
+<div class="deck" id="deck">
+
+<!-- 1 · Portada -->
+<section class="slide center">
+  <span class="tag">Clase 1 · AI Engineering</span>
+  <h1>Arquitectura asíncrona<br><span class="hl">con Python 3.12</span></h1>
+  <p class="sub">asyncio, concurrencia y clientes de LLM intercambiables</p>
+  <p class="sub" style="font-size:1rem">Flechas ← → para navegar · F para pantalla completa · T para cambiar tema</p>
+</section>
+
+<!-- 2 · Agenda -->
+<section class="slide">
+  <h2>Qué vamos a ver hoy</h2>
+  <ul>
+    <li>Por qué en IA el tiempo se gasta <b>esperando</b>, no calculando</li>
+    <li>Los tres pilares de <code>asyncio</code>: <b>corrutinas</b>, <b>event loop</b> y <b>tasks</b></li>
+    <li>Patrones: <code>asyncio.run</code>, <code>gather</code>, <b>timeouts</b> y <b>semáforos</b></li>
+    <li>Anti-patrones: creer que async acelera todo y <b>bloquear el loop</b></li>
+    <li><b>Streaming</b> de tokens y por qué importa</li>
+    <li>Un ejemplo resuelto: embeddings en lote con control de concurrencia</li>
+    <li><b>Abstracción de clientes</b>: patrón Factory y configuración con Pydantic</li>
+    <li>Un ejercicio práctico y la <b>Pre-entrega 1</b></li>
+  </ul>
+</section>
+
+<!-- 3 · El tiempo se gasta esperando -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">El problema</span>
+  <h2>En IA, el tiempo se gasta esperando</h2>
+  <p class="big">Tu programa casi no "calcula": el cálculo ocurre en los servidores de OpenAI o Anthropic. Lo que hace tu programa es <b>esperar</b>.</p>
+  <div class="flow">
+    <div class="node">Esperar<small>que el prompt llegue</small></div><span class="arrow">→</span>
+    <div class="node m">Esperar<small>que el modelo procese</small></div><span class="arrow">→</span>
+    <div class="node o">Esperar<small>que los tokens vuelvan por la red</small></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h3>📜 Script lineal</h3><p class="small">Llama a un LLM y se queda quieto hasta que responde. Sirve para una prueba; no para un producto.</p></div>
+    <div class="card"><h3>🏗️ Sistema de IA</h3><p class="small">Atiende <b>cientos de usuarios</b>, maneja varios flujos a la vez y muestra la respuesta <b>mientras se escribe</b>.</p></div>
+  </div>
+  <p class="note">La arquitectura asíncrona convierte esa <b>espera pasiva</b> en una <b>oportunidad para hacer otra cosa</b>.</p>
+</section>
+
+<!-- 4 · Síncrono vs asíncrono -->
+<section class="slide">
+  <h2>Un agente con tres pasos</h2>
+  <p>Tu agente tiene que: <b>1)</b> buscar en una base vectorial, <b>2)</b> consultar una API de clima y <b>3)</b> generar la respuesta con un LLM. Cada llamada tarda <b>2 segundos</b>.</p>
+  <div class="grid">
+    <div class="card bad">
+      <span class="tag bad">síncrono (bloqueante)</span>
+      <div class="flow" style="justify-content:flex-start">
+        <div class="node">Base vectorial<small>2 s</small></div><span class="arrow">→</span>
+        <div class="node">Clima<small>2 s</small></div><span class="arrow">→</span>
+        <div class="node">LLM<small>2 s</small></div>
+      </div>
+      <p class="small" style="margin-top:1vh">Una después de la otra: <b>6 segundos</b>. Y mientras espera, el servidor <b>no atiende a nadie más</b>.</p>
+    </div>
+    <div class="card ok">
+      <span class="tag ok">asíncrono</span>
+      <div class="flow" style="justify-content:flex-start">
+        <div><div class="node m" style="margin-bottom:.6vh">Base vectorial<small>2 s</small></div><div class="node m">Clima<small>2 s</small></div></div>
+        <span class="arrow">→</span>
+        <div class="node">LLM<small>2 s</small></div>
+      </div>
+      <p class="small" style="margin-top:1vh">Las dos búsquedas esperan <b>a la vez</b>: <b>4 segundos</b>. Y durante las esperas, el servidor atiende a otros usuarios.</p>
+    </div>
+  </div>
+  <p class="note">El LLM necesita los resultados de las búsquedas, así que va después. Lo que <b>no depende entre sí</b> se puede esperar al mismo tiempo.</p>
+</section>
+
+<!-- 5 · Concurrencia cooperativa -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Concepto clave</span>
+  <h2>Concurrencia cooperativa (no paralelismo)</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>👥 Paralelismo</h3>
+      <p class="small">Varios procesadores trabajando <b>al mismo tiempo</b>. Como tener tres cocineros.</p>
+    </div>
+    <div class="card ok">
+      <span class="tag ok">lo que hace asyncio</span>
+      <h3>🔄 Concurrencia cooperativa</h3>
+      <p class="small"><b>Un solo cocinero</b> que no se queda mirando el horno: mientras la tarea A espera datos de la red, <b>cede el control</b> para que avance la tarea B.</p>
+    </div>
+  </div>
+  <table>
+    <tr><th>Palabra</th><th>Qué significa</th></tr>
+    <tr><td>I/O</td><td>Entrada/salida: todo lo que implica <b>esperar a algo externo</b> (red, base de datos, disco, una API).</td></tr>
+    <tr><td>bloqueante</td><td>Código que <b>frena todo el programa</b> hasta terminar.</td></tr>
+    <tr><td>cooperativa</td><td>Cada tarea <b>avisa</b> cuándo va a esperar (con <code>await</code>) y deja pasar a otra.</td></tr>
+  </table>
+  <p class="note"><b>Python 3.12</b> refina <code>asyncio</code>: mejora el rendimiento y elimina comportamientos viejos y ambiguos (como crear el loop automáticamente), para empujar patrones más limpios y predecibles.</p>
+</section>
+
+<!-- 6 · Corrutinas -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Pilar 1</span>
+  <h2>Corrutinas: <code>async def</code> y <code>await</code></h2>
+  <p class="big">Una <b>corrutina</b> es una función que puede <b>pausarse</b> y retomar después.</p>
+  <div class="card">
+    <h3>📖 Una receta con señaladores</h3>
+    <p class="small">Empezás a cocinar. Llegás a "esperar a que el horno caliente" (<code>await</code>), dejás un <b>señalador</b> ahí y, mientras tanto, picás verduras para otra receta. Cuando el horno está listo, volvés al señalador.</p>
+  </div>
+<pre><span class="k">async def</span> <span class="f">fetch_llm_response</span>(prompt: str):
+    <span class="c"># La ejecución se pausa acá y libera el programa para otras tareas</span>
+    response = <span class="k">await</span> client.chat.completions.create(model=<span class="s">"gpt-4o"</span>, messages=[...])
+    <span class="k">return</span> response</pre>
+  <ul class="small">
+    <li><code>async def</code> declara que la función <b>puede pausarse</b>.</li>
+    <li><code>await</code> marca <b>el punto de espera</b>: "acá voy a tardar, que siga otro". Solo se puede usar dentro de un <code>async def</code>.</li>
+  </ul>
+</section>
+
+<!-- 7 · Event loop -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Pilar 2</span>
+  <h2>El event loop: el encargado del restaurante</h2>
+  <p>El <b>event loop</b> es el motor invisible que coordina las corrutinas: decide <b>quién avanza</b> en cada momento.</p>
+  <div class="flow">
+    <div class="node">Recibe pedidos<small>las tareas</small></div><span class="arrow">→</span>
+    <div class="node m">Los asigna<small>arranca cada una</small></div><span class="arrow">→</span>
+    <div class="node">¿Alguien espera a la cocina?<small>llegó a un await</small></div><span class="arrow">→</span>
+    <div class="node o">"Atendé otra mesa"<small>avanza otra tarea</small></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h3>🧑‍🍳 El mozo</h3><p class="small">Es <b>uno solo</b> (un solo hilo). Pero nunca se queda parado al lado de la cocina esperando un plato.</p></div>
+    <div class="card"><h3>📋 El encargado</h3><p class="small">Lleva la lista de qué mesa espera qué cosa, y manda al mozo <b>adonde haya algo para hacer</b>.</p></div>
+  </div>
+  <p class="note">No lo programás vos: lo crea y lo cierra <code>asyncio.run()</code>. Tu trabajo es <b>no trabarlo</b> (lo vemos en los anti-patrones).</p>
+</section>
+
+<!-- 8 · Tasks -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Pilar 3</span>
+  <h2>Tasks: tareas en segundo plano</h2>
+  <p>Una <b>task</b> es una corrutina que ya fue <b>programada en el event loop</b> para ejecutarse "lo antes posible".</p>
+  <table>
+    <tr><th>Objeto</th><th>Cuándo se ejecuta</th><th>Analogía</th></tr>
+    <tr><td>corrutina</td><td>Recién cuando le hacés <code>await</code>. Sola, <b>no hace nada</b>.</td><td>Una receta escrita</td></tr>
+    <tr><td>task</td><td>Arranca <b>en segundo plano</b> mientras vos seguís con otra cosa.</td><td>Un pedido ya entregado a la cocina</td></tr>
+  </table>
+<pre><span class="k">async def</span> <span class="f">main</span>():
+    <span class="c"># create_task programa la corrutina: empieza a correr en segundo plano</span>
+    tarea = asyncio.<span class="f">create_task</span>(buscar_documentos(<span class="s">"envíos"</span>))
+
+    <span class="f">print</span>(<span class="s">"Mientras tanto, sigo con otra cosa..."</span>)
+
+    resultado = <span class="k">await</span> tarea    <span class="c"># cuando lo necesito, espero el resultado</span></pre>
+  <p class="note">Error típico: llamar <code>buscar_documentos("envíos")</code> <b>sin</b> <code>await</code> ni <code>create_task</code>. No se ejecuta nada, y Python avisa con <code>coroutine was never awaited</code>.</p>
+</section>
+
+<!-- 9 · asyncio.run -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Patrones</span>
+  <h2>El punto de entrada: <code>asyncio.run()</code></h2>
+  <p>Es la forma estándar de <b>arrancar</b> una aplicación asíncrona. Crea el event loop, espera a que terminen las tareas y cierra todo de forma limpia.</p>
+<pre><span class="k">import</span> asyncio
+
+<span class="k">async def</span> <span class="f">main</span>():
+    <span class="f">print</span>(<span class="s">"Iniciando sistema de IA..."</span>)
+    <span class="c"># Lógica de la aplicación acá</span>
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    asyncio.<span class="f">run</span>(main())   <span class="c"># un solo punto de entrada para todo el programa</span></pre>
+  <div class="grid">
+    <div class="card ok"><span class="tag ok">hacé esto</span><p class="small"><b>Un único</b> <code>asyncio.run(main())</code> por programa. Todo lo demás se llama con <code>await</code> desde adentro.</p></div>
+    <div class="card bad"><span class="tag bad">evitá esto</span><p class="small">Usar <code>asyncio.get_event_loop()</code> para arrancar. Si necesitás el loop <b>desde adentro</b> de una función async, usá <code>asyncio.get_running_loop()</code>.</p></div>
+  </div>
+</section>
+
+<!-- 10 · gather -->
+<section class="slide">
+  <h2>Varias llamadas a la vez: <code>asyncio.gather</code></h2>
+  <p>El patrón más común: <b>disparar varias llamadas juntas</b> y esperar a todas. Por ejemplo, comparar tres modelos con el mismo prompt.</p>
+<pre><span class="k">async def</span> <span class="f">compare_models</span>(prompt):
+    <span class="c"># Las tres llamadas esperan al mismo tiempo</span>
+    results = <span class="k">await</span> asyncio.<span class="f">gather</span>(
+        call_openai(prompt),
+        call_anthropic(prompt),
+        call_local_llama(prompt),
+        return_exceptions=<span class="k">True</span>,   <span class="c"># clave: un fallo no tumba a los demás</span>
+    )
+    <span class="k">return</span> results   <span class="c"># lista en el MISMO orden en que pasaste las llamadas</span></pre>
+  <ul class="small">
+    <li>Tarda lo que tarda <b>la más lenta</b>, no la suma de las tres.</li>
+    <li>Con <code>return_exceptions=True</code>, si una falla, su error <b>vuelve como un resultado más</b> de la lista.</li>
+  </ul>
+  <p class="note"><b>Caso real:</b> en un sistema RAG, buscar en la base vectorial y en una API de búsqueda web <b>a la vez</b>. No hay razón para esperar a una para empezar la otra.</p>
+</section>
+
+<!-- 11 · Timeouts -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Producción</span>
+  <h2>Timeouts: el seguro contra la espera infinita</h2>
+  <p>Los modelos pueden ponerse lentos y las APIs pueden fallar. <b>Nunca</b> dejes una llamada abierta indefinidamente.</p>
+<pre><span class="k">try</span>:
+    <span class="k">async with</span> asyncio.<span class="f">timeout</span>(<span class="w">10.0</span>):       <span class="c"># como máximo, 10 segundos</span>
+        response = <span class="k">await</span> call_llm(prompt)
+<span class="k">except</span> TimeoutError:
+    <span class="f">print</span>(<span class="s">"El modelo tardó demasiado. Aplicando estrategia de fallback..."</span>)</pre>
+  <div class="grid">
+    <div class="card"><h3>⏱️ Qué hace</h3><p class="small">Si lo de adentro del bloque supera el tiempo, lo <b>cancela</b> y lanza <code>TimeoutError</code>.</p></div>
+    <div class="card"><h3>🔁 Qué hacer después</h3><p class="small">Un <b>fallback</b> (plan B): reintentar, usar otro modelo o devolver un mensaje claro al usuario.</p></div>
+  </div>
+  <p class="note"><code>asyncio.timeout()</code> existe desde Python 3.11 y es la forma estándar en 3.12.</p>
+</section>
+
+<!-- 12 · Semáforos -->
+<section class="slide">
+  <h2>Semáforos: controlar cuántas a la vez</h2>
+  <p>Si disparás <b>1.000 llamadas</b> en un segundo con <code>gather</code>, la API responde <code>429: Too Many Requests</code>. Un <b>semáforo</b> limita cuántas tareas pueden estar activas al mismo tiempo.</p>
+<pre>sem = asyncio.<span class="f">Semaphore</span>(<span class="w">5</span>)   <span class="c"># solo 5 llamadas a la vez</span>
+
+<span class="k">async def</span> <span class="f">throttled_call</span>(prompt):
+    <span class="k">async with</span> sem:           <span class="c"># si ya hay 5 adentro, espera su turno acá</span>
+        <span class="k">return await</span> call_llm(prompt)</pre>
+  <div class="grid">
+    <div class="card"><h3>🚪 Como el portero de un local</h3><p class="small">Entran 5. El resto hace fila afuera, y cada vez que <b>sale uno, entra otro</b>.</p></div>
+    <div class="card"><h3>📉 Rate limit</h3><p class="small">El límite de pedidos por minuto que te da cada proveedor. Si lo pasás, te rechaza las llamadas.</p></div>
+  </div>
+  <p class="note">Podés crear las 1.000 tareas igual: quedan <b>encoladas</b>, y el semáforo asegura que solo corran 5 en simultáneo.</p>
+</section>
+
+<!-- 13 · Anti-patrón 1 -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Anti-patrones</span>
+  <h2>Mito: "async hace todo más rápido"</h2>
+  <p class="big"><b>Falso.</b> <code>asyncio</code> no acelera los cálculos: aprovecha las <b>esperas</b>.</p>
+  <div class="grid">
+    <div class="card ok">
+      <span class="tag ok">I/O-bound: asyncio ayuda</span>
+      <p class="small">El tiempo se va en <b>esperar</b>: llamadas a APIs, bases de datos, red.</p>
+      <p class="small" style="margin-top:.8vh">→ <code>asyncio</code></p>
+    </div>
+    <div class="card bad">
+      <span class="tag bad">CPU-bound: asyncio no ayuda</span>
+      <p class="small">El tiempo se va en <b>calcular</b>: limpiar datos pesados con Pandas, correr un modelo de PyTorch en tu CPU.</p>
+      <p class="small" style="margin-top:.8vh">→ <code>multiprocessing</code></p>
+    </div>
+  </div>
+  <p class="note">Volviendo a la cocina: un solo cocinero puede vigilar <b>diez hornos</b> a la vez (esperas), pero no puede <b>picar diez cebollas</b> a la vez (trabajo).</p>
+</section>
+
+<!-- 14 · Bloqueo del loop -->
+<section class="slide">
+  <h2>El error más peligroso: bloquear el loop</h2>
+  <p>Si dentro de una función <code>async</code> llamás a algo <b>síncrono que tarda</b>, frenás a <b>todos</b> tus usuarios. El encargado se queda congelado, y nadie más recibe su comida.</p>
+  <div class="grid">
+    <div class="card bad">
+      <span class="tag bad">bloquea todo</span>
+<pre><span class="k">async def</span> <span class="f">procesar</span>():
+    time.sleep(<span class="w">5</span>)   <span class="c"># nadie avanza por 5 s</span></pre>
+    </div>
+    <div class="card ok">
+      <span class="tag ok">cede el control</span>
+<pre><span class="k">async def</span> <span class="f">procesar</span>():
+    <span class="k">await</span> asyncio.sleep(<span class="w">5</span>)   <span class="c"># los demás siguen</span></pre>
+    </div>
+  </div>
+  <p><b>¿Y si la librería no tiene versión async?</b> Mandala a un hilo aparte con <code>asyncio.to_thread()</code>:</p>
+<pre><span class="c"># Corre la función síncrona en otro hilo, sin bloquear el loop principal</span>
+result = <span class="k">await</span> asyncio.<span class="f">to_thread</span>(blocking_sync_function, data)</pre>
+  <p class="note">El caso típico en IA: usar el cliente <b>síncrono</b> (<code>OpenAI</code>) dentro de un <code>async def</code>, en vez del asíncrono (<code>AsyncOpenAI</code>). Funciona, pero congela el servidor mientras el modelo "piensa".</p>
+</section>
+
+<!-- 15 · Streaming -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">En la industria</span>
+  <h2>Streaming de tokens</h2>
+  <p>Los usuarios de ChatGPT esperan ver las palabras <b>aparecer de a una</b>. Eso se logra con <b>generadores asíncronos</b>.</p>
+  <div class="grid">
+    <div class="card bad">
+      <span class="tag bad">sin streaming</span>
+      <p class="small">El servidor espera los <b>500 tokens</b> completos y recién ahí los manda. El usuario mira una pantalla vacía.</p>
+    </div>
+    <div class="card ok">
+      <span class="tag ok">con streaming</span>
+      <p class="small">Cada token se envía al frontend <b>apenas llega</b> de la red. El usuario empieza a leer casi al instante.</p>
+    </div>
+  </div>
+  <div class="flow">
+    <div class="node m">LLM<small>genera token a token</small></div><span class="arrow">→</span>
+    <div class="node">Tu servidor<small>async for token in stream</small></div><span class="arrow">→</span>
+    <div class="node o">Frontend<small>por SSE o WebSockets</small></div>
+  </div>
+  <p class="note"><b>TTFT</b> (Time To First Token): cuánto tarda en aparecer la <b>primera</b> palabra. Es una de las métricas de experiencia de usuario más importantes en productos de IA. <b>SSE</b> y <b>WebSockets</b> son dos formas de que el servidor le mande datos al navegador de a poco.</p>
+</section>
+
+<!-- 16 · Ejemplo resuelto: qué hace -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Ejemplo resuelto</span>
+  <h2>Juntamos todo: embeddings en lote</h2>
+  <p><b>El caso:</b> generar los embeddings de <b>8 textos</b> de forma concurrente, con tres condiciones.</p>
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="card"><h3>🚪 Límite</h3><p class="small">Como máximo <b>3 llamadas</b> a la vez.<br><code>Semaphore(3)</code></p></div>
+    <div class="card"><h3>⏱️ Timeout</h3><p class="small">Cada llamada tiene <b>2 segundos</b>.<br><code>asyncio.timeout(2.0)</code></p></div>
+    <div class="card"><h3>🛡️ Sin caídas</h3><p class="small">Un fallo <b>no tumba el lote</b>.<br><code>return_exceptions=True</code></p></div>
+  </div>
+  <div class="flow">
+    <div class="node">8 textos</div><span class="arrow">→</span>
+    <div class="node">gather<small>crea las 8 tareas</small></div><span class="arrow">→</span>
+    <div class="node m">Semáforo<small>pasan de a 3</small></div><span class="arrow">→</span>
+    <div class="node">Timeout<small>2 s por llamada</small></div><span class="arrow">→</span>
+    <div class="node o">Resultados<small>ok o fallido, nunca un crash</small></div>
+  </div>
+  <p class="note">El código corre tal cual, <b>sin API keys</b>: la latencia de red se simula con <code>asyncio.sleep</code> y un tiempo al azar entre 0,5 y 2,5 segundos.</p>
+</section>
+
+<!-- 17 · Ejemplo resuelto: código -->
+<section class="slide scroll">
+  <h2>Ejemplo resuelto: código completo y comentado</h2>
+  <div class="grid" style="grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);align-items:stretch">
+    <div class="card" style="padding:1vh .8vw"><span class="tag">Código completo · copiá, pegá y corré · no necesita instalar nada</span>
+<pre><span class="c"># =====================================================================</span>
+<span class="c"># EJEMPLO RESUELTO: embeddings en lote con control de concurrencia</span>
+<span class="c"># =====================================================================</span>
+<span class="c"># Junta las tres piezas de la clase: gather, Semaphore y timeout.</span>
+<span class="c"># No llama a ninguna API: simula la espera de red, así corre sin keys.</span>
+<span class="c"># =====================================================================</span>
+<span class="k">import</span> asyncio
+<span class="k">import</span> random   <span class="c"># para inventar una latencia distinta en cada llamada</span>
+<span class="k">import</span> time     <span class="c"># solo para medir cuánto tardó todo</span>
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># 1. Una "llamada a la API de embeddings" simulada (tarea I/O-bound)</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">async def</span> <span class="f">get_embedding</span>(text: str, sem: asyncio.Semaphore) -&gt; dict:
+
+    <span class="c"># El semáforo es el "portero": si ya hay 3 llamadas adentro,</span>
+    <span class="c"># esta espera acá hasta que salga alguna.</span>
+    <span class="k">async with</span> sem:
+        <span class="c"># Latencia de red simulada: entre 0.5 y 2.5 segundos</span>
+        latency = random.uniform(<span class="w">0.5</span>, <span class="w">2.5</span>)
+        <span class="k">try</span>:
+            <span class="c"># Si lo de adentro tarda más de 2 s, se cancela y lanza TimeoutError</span>
+            <span class="k">async with</span> asyncio.<span class="f">timeout</span>(<span class="w">2.0</span>):
+                <span class="c"># await asyncio.sleep: espera SIN bloquear el event loop.</span>
+                <span class="c"># Con time.sleep se frenarían todas las demás tareas.</span>
+                <span class="k">await</span> asyncio.sleep(latency)
+                <span class="k">return</span> {<span class="s">"text"</span>: text, <span class="s">"dim"</span>: <span class="w">1536</span>, <span class="s">"ok"</span>: <span class="k">True</span>}
+        <span class="k">except</span> TimeoutError:
+            <span class="c"># En vez de romper el programa, devolvemos un resultado</span>
+            <span class="c"># marcado como fallido.</span>
+            <span class="k">return</span> {<span class="s">"text"</span>: text, <span class="s">"ok"</span>: <span class="k">False</span>, <span class="s">"error"</span>: <span class="s">"timeout"</span>}
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># 2. El orquestador: dispara todas las tareas de forma concurrente</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">async def</span> <span class="f">embed_batch</span>(texts: list[str]) -&gt; list[dict]:
+    <span class="c"># Un solo semáforo, compartido por todas las llamadas: máximo 3 a la vez</span>
+    sem = asyncio.<span class="f">Semaphore</span>(<span class="w">3</span>)
+
+    <span class="c"># Una corrutina por texto. Todavía no se ejecuta ninguna.</span>
+    tasks = [get_embedding(t, sem) <span class="k">for</span> t <span class="k">in</span> texts]
+
+    <span class="c"># gather las dispara todas y espera a que terminen.</span>
+    <span class="c"># El * "desarma" la lista: es como escribir gather(t1, t2, t3, ...).</span>
+    <span class="c"># return_exceptions=True: si una falla con un error inesperado,</span>
+    <span class="c"># ese error vuelve como un resultado más y el lote no se cae.</span>
+    <span class="k">return await</span> asyncio.<span class="f">gather</span>(*tasks, return_exceptions=<span class="k">True</span>)
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># 3. Punto de entrada</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">async def</span> <span class="f">main</span>():
+    <span class="c"># 8 textos de prueba: "documento_0" ... "documento_7"</span>
+    textos = [f<span class="s">"documento_{i}"</span> <span class="k">for</span> i <span class="k">in</span> range(<span class="w">8</span>)]
+
+    inicio = time.perf_counter()              <span class="c"># arrancamos el cronómetro</span>
+    resultados = <span class="k">await</span> embed_batch(textos)
+    elapsed = time.perf_counter() - inicio    <span class="c"># segundos que tardó todo</span>
+
+    <span class="c"># Separamos los que salieron bien de los que fallaron.</span>
+    <span class="c"># isinstance(r, dict) descarta posibles excepciones devueltas por gather.</span>
+    ok = [r <span class="k">for</span> r <span class="k">in</span> resultados <span class="k">if</span> isinstance(r, dict) <span class="k">and</span> r.get(<span class="s">"ok"</span>)]
+    fallidos = [r <span class="k">for</span> r <span class="k">in</span> resultados <span class="k">if</span> isinstance(r, dict) <span class="k">and not</span> r.get(<span class="s">"ok"</span>)]
+
+    <span class="f">print</span>(f<span class="s">"Procesados OK: {len(ok)}/{len(textos)} en {elapsed:.2f}s"</span>)
+    <span class="k">for</span> f <span class="k">in</span> fallidos:
+        <span class="f">print</span>(f<span class="s">"  Falló: {f['text']} -&gt; {f['error']}"</span>)
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    asyncio.<span class="f">run</span>(main())   <span class="c"># único punto de entrada</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- 18 · Ejemplo resuelto: salida -->
+<section class="slide">
+  <h2>Ejemplo resuelto: qué deberías ver</h2>
+<pre>Procesados OK: 6/8 en 4.61s
+  Falló: documento_2 -&gt; timeout
+  Falló: documento_5 -&gt; timeout</pre>
+  <p class="small" style="color:var(--muted)">Salida aproximada: cambia en cada corrida porque la latencia es aleatoria.</p>
+  <table>
+    <tr><th>Pieza</th><th>Qué hace acá</th></tr>
+    <tr><td>Semaphore(3)</td><td>Aunque se crean 8 tareas, solo 3 están dentro del bloque a la vez. Por eso se procesan en unas <b>3 "tandas"</b>, no todas de golpe.</td></tr>
+    <tr><td>gather(*tasks, ...)</td><td>Dispara las 8 y espera a todas. Con <code>return_exceptions=True</code>, un error vuelve como <b>un resultado más</b>.</td></tr>
+    <tr><td>timeout(2.0)</td><td>Si la latencia simulada pasa de 2 s, lanza <code>TimeoutError</code>; lo capturamos y devolvemos un resultado <b>marcado como fallido</b>.</td></tr>
+    <tr><td>await asyncio.sleep</td><td>Simula la red <b>sin bloquear</b> el loop. Con <code>time.sleep</code> se habrían procesado de a una.</td></tr>
+  </table>
+  <p class="note"><b>Para pensar:</b> si tuvieras que embeddear <b>10.000 filas</b>, ¿harías <code>gather</code> con las 10.000 a la vez? No: te ganarías un <code>429</code>. Las encolás todas, y el semáforo asegura que solo <b>N</b> corran en simultáneo. Es exactamente este patrón.</p>
+</section>
+
+<!-- 19 · Buenas prácticas -->
+<section class="slide">
+  <h2>Buenas prácticas de asyncio</h2>
+  <ul class="small">
+    <li><code>asyncio.run()</code> como <b>único punto de entrada</b> de tus scripts.</li>
+    <li>Si necesitás el loop desde adentro de una función, <code>asyncio.get_running_loop()</code> en vez de la versión antigua.</li>
+    <li><b>Nunca bloquees el loop:</b> las funciones síncronas de I/O van envueltas en <code>asyncio.to_thread()</code>.</li>
+    <li><b>Timeouts y semáforos desde el día 1:</b> un sistema de IA sin control de flujo termina agotando cuotas y con latencias extremas.</li>
+    <li><code>asyncio.TaskGroup</code> para grupos de tareas que <b>dependen entre sí</b>.</li>
+  </ul>
+<pre><span class="c"># TaskGroup (Python 3.11+): si una tarea falla, cancela las demás limpiamente</span>
+<span class="k">async with</span> asyncio.<span class="f">TaskGroup</span>() <span class="k">as</span> tg:
+    t1 = tg.create_task(buscar_documentos(pregunta))
+    t2 = tg.create_task(buscar_en_web(pregunta))
+<span class="c"># Al salir del bloque, las dos terminaron</span>
+docs, web = t1.result(), t2.result()</pre>
+  <table>
+    <tr><th>Herramienta</th><th>Si una tarea falla...</th><th>Usala cuando...</th></tr>
+    <tr><td>gather(return_exceptions=True)</td><td>las demás <b>siguen</b>; el error vuelve en la lista</td><td>cada resultado sirve por separado (un lote)</td></tr>
+    <tr><td>TaskGroup</td><td>las demás <b>se cancelan</b></td><td>necesitás <b>todos</b> los resultados o ninguno</td></tr>
+  </table>
+</section>
+
+<!-- 20 · Por qué abstraer -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Abstracción de clientes</span>
+  <h2>La capa de conexión: ¿por qué abstraer?</h2>
+  <p>Un error muy común es crear el cliente de OpenAI o Anthropic <b>directamente en la lógica de negocio</b>. Eso trae tres problemas:</p>
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="card bad">
+      <span class="tag bad">acoplamiento</span>
+      <p class="small">Cambiar de un modelo de OpenAI a uno de Anthropic obliga a <b>reescribir decenas de líneas</b>.</p>
+    </div>
+    <div class="card bad">
+      <span class="tag bad">testing difícil</span>
+      <p class="small">Cuesta <b>simular</b> (mockear) la API si el cliente está "enterrado" en el código.</p>
+    </div>
+    <div class="card bad">
+      <span class="tag bad">inconsistencia</span>
+      <p class="small">Cada SDK devuelve la respuesta <b>con otra forma</b>.</p>
+    </div>
+  </div>
+  <table>
+    <tr><th>Proveedor</th><th>Cómo se llama</th><th>Dónde está el texto</th></tr>
+    <tr><td>OpenAI</td><td><code>client.chat.completions.create(...)</code></td><td><code>response.choices[0].message.content</code></td></tr>
+    <tr><td>Anthropic</td><td><code>client.messages.create(...)</code></td><td><code>response.content[0].text</code> (<code>content</code> es una lista)</td></tr>
+  </table>
+  <p class="note"><b>Abstraer</b> = esconder esas diferencias detrás de una <b>interfaz común</b>. Como un adaptador de enchufe: el resto de tu app siempre enchufa igual.</p>
+</section>
+
+<!-- 21 · Factory y Pydantic -->
+<section class="slide">
+  <h2>La solución: Factory + Pydantic</h2>
+  <div class="flow">
+    <div class="node">Configuración<small>LLMConfig (Pydantic)</small></div><span class="arrow">→</span>
+    <div class="node m">LLMFactory<small>"¿qué proveedor pidieron?"</small></div><span class="arrow">→</span>
+    <div><div class="node" style="margin-bottom:.6vh">OpenAIClient</div><div class="node">AnthropicClient</div></div>
+    <span class="arrow">→</span>
+    <div class="node o">tu app<small>await client.chat(prompt)</small></div>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <h3>🏭 Patrón Factory</h3>
+      <p class="small">Una "fábrica" que decide <b>qué cliente crear</b> en tiempo de ejecución, según la configuración. Tu app pide "un cliente" y no le importa cuál le toca.</p>
+    </div>
+    <div class="card">
+      <h3>🔑 SecretStr de Pydantic</h3>
+      <p class="small">Un tipo para guardar claves. Si se imprime o aparece en un log de error, muestra <code>**********</code> en vez de la clave real.</p>
+    </div>
+  </div>
+<pre>key = SecretStr(<span class="s">"sk-abc123"</span>)
+<span class="f">print</span>(key)                     <span class="c"># **********   (seguro para logs)</span>
+<span class="f">print</span>(key.get_secret_value())  <span class="c"># sk-abc123    (solo cuando hace falta de verdad)</span></pre>
+  <p class="note">Las dos clases heredan de <code>BaseLLMClient</code>, una <b>clase abstracta</b>: un "contrato" que obliga a que todas tengan el método <code>chat()</code>.</p>
+</section>
+
+<!-- 22 · Ejercicio: consigna -->
+<section class="slide">
+  <h2>Ejercicio: qué tenés que hacer</h2>
+  <p><b>Objetivo:</b> construir una capa que permita cambiar entre OpenAI y Anthropic <b>sin tocar el resto del código</b>, usando el patrón Factory.</p>
+  <table class="plain">
+    <tr><th>TODO</th><th>Qué hacer</th></tr>
+    <tr><td>1</td><td>Importar <code>AsyncOpenAI</code> (de <code>openai</code>) y <code>AsyncAnthropic</code> (de <code>anthropic</code>).</td></tr>
+    <tr><td>2</td><td>En <code>LLMConfig</code>, definir <code>openai_api_key</code> y <code>anthropic_api_key</code> como <code>SecretStr</code> <b>opcionales</b>.</td></tr>
+    <tr><td>3</td><td>Implementar <code>OpenAIClient</code> y <code>AnthropicClient</code> heredando de <code>BaseLLMClient</code>. Cada uno recibe su key, crea su cliente asíncrono e implementa <code>chat()</code> devolviendo <b>solo el texto</b>, para que las dos respondan igual.</td></tr>
+    <tr><td>4</td><td>En <code>LLMFactory.create_client</code>, devolver el cliente según el <code>Provider</code>. Si falta la key de ese proveedor, lanzar un <code>ValueError</code> con un mensaje claro.</td></tr>
+    <tr><td>5</td><td>En <code>main()</code>, crear la configuración y un cliente con el Factory.</td></tr>
+  </table>
+  <p class="note"><b>Para probar sin gastar créditos:</b> usá keys de prueba, como <code>SecretStr("sk-dummy")</code>. El ejercicio solo <b>crea</b> el cliente: no hace falta llamar al modelo. Instalación: <code>pip install openai anthropic pydantic</code>.</p>
+</section>
+
+<!-- 23 · Ejercicio: salida esperada -->
+<section class="slide">
+  <h2>Ejercicio: qué deberías ver</h2>
+<pre>Configuración: openai_api_key=SecretStr('**********') anthropic_api_key=None
+Cliente creado: OpenAIClient
+Error controlado: Falta la API key de Anthropic (anthropic_api_key)</pre>
+  <ul>
+    <li>Un mensaje que confirma que se creó el cliente de <b>OpenAI</b>.</li>
+    <li>Al imprimir la configuración, la clave aparece <b>tapada</b>: <code>SecretStr</code> funciona.</li>
+    <li>Si pedís el cliente de Anthropic <b>sin cargar su key</b>, aparece <b>tu</b> <code>ValueError</code>, no un error raro del SDK.</li>
+  </ul>
+  <p class="note"><b>¿Por qué importa el último punto?</b> Un error propio dice exactamente qué falta y dónde. Un error del SDK aparecería más tarde, recién al llamar al modelo, y con un mensaje mucho menos claro.</p>
+</section>
+
+<!-- 24 · Ejercicio: solución -->
+<section class="slide scroll">
+  <h2>Ejercicio: solución completa y comentada</h2>
+  <div class="grid" style="grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);align-items:stretch">
+    <div class="card" style="padding:1vh .8vw"><span class="tag">Código completo · corre con keys de prueba, sin gastar créditos</span>
+<pre><span class="c"># =====================================================================</span>
+<span class="c"># EJERCICIO: una capa para cambiar de proveedor de LLM sin tocar la app</span>
+<span class="c"># =====================================================================</span>
+<span class="c"># Antes de correrlo (una sola vez), en la terminal:</span>
+<span class="c">#     pip install openai anthropic pydantic</span>
+<span class="c"># =====================================================================</span>
+<span class="k">import</span> asyncio
+<span class="k">from</span> abc <span class="k">import</span> ABC, abstractmethod   <span class="c"># para definir la clase "contrato"</span>
+<span class="k">from</span> enum <span class="k">import</span> Enum                 <span class="c"># para una lista cerrada de opciones</span>
+<span class="k">from</span> pydantic <span class="k">import</span> BaseModel, SecretStr
+
+<span class="c"># TODO 1: los clientes ASÍNCRONOS de cada SDK (no OpenAI ni Anthropic a secas:</span>
+<span class="c"># esos son síncronos y bloquearían el event loop)</span>
+<span class="k">from</span> openai <span class="k">import</span> AsyncOpenAI
+<span class="k">from</span> anthropic <span class="k">import</span> AsyncAnthropic
+
+
+<span class="c"># Los proveedores posibles. Un Enum evita errores de tipeo como "opnai".</span>
+<span class="k">class</span> <span class="f">Provider</span>(str, Enum):
+    OPENAI = <span class="s">"openai"</span>
+    ANTHROPIC = <span class="s">"anthropic"</span>
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># TODO 2: la configuración, validada con Pydantic</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">class</span> <span class="f">LLMConfig</span>(BaseModel):
+    <span class="c"># SecretStr: la clave no se muestra al imprimir ni en los logs.</span>
+    <span class="c"># "| None = None": el campo es opcional (podés tener una sola key).</span>
+    openai_api_key: SecretStr | <span class="k">None</span> = <span class="k">None</span>
+    anthropic_api_key: SecretStr | <span class="k">None</span> = <span class="k">None</span>
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># El contrato: toda clase cliente DEBE tener un método chat()</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">class</span> <span class="f">BaseLLMClient</span>(ABC):
+    <span class="k">@abstractmethod</span>
+    <span class="k">async def</span> <span class="f">chat</span>(self, prompt: str) -&gt; str:
+        <span class="k">pass</span>
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># TODO 3: un cliente por proveedor. Los dos devuelven SOLO el texto.</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">class</span> <span class="f">OpenAIClient</span>(BaseLLMClient):
+    <span class="k">def</span> <span class="f">__init__</span>(self, api_key: SecretStr, model: str = <span class="s">"gpt-4o"</span>):
+        <span class="c"># get_secret_value() "destapa" la clave: solo acá, donde hace falta</span>
+        self.client = AsyncOpenAI(api_key=api_key.get_secret_value())
+        self.model = model
+
+    <span class="k">async def</span> <span class="f">chat</span>(self, prompt: str) -&gt; str:
+        response = <span class="k">await</span> self.client.chat.completions.create(
+            model=self.model,
+            messages=[{<span class="s">"role"</span>: <span class="s">"user"</span>, <span class="s">"content"</span>: prompt}])
+        <span class="c"># En OpenAI el texto está en choices[0].message.content</span>
+        <span class="k">return</span> response.choices[<span class="w">0</span>].message.content
+
+
+<span class="k">class</span> <span class="f">AnthropicClient</span>(BaseLLMClient):
+    <span class="c"># Ajustá "model" al que tengas disponible en tu cuenta</span>
+    <span class="k">def</span> <span class="f">__init__</span>(self, api_key: SecretStr, model: str = <span class="s">"claude-sonnet-4-5"</span>):
+        self.client = AsyncAnthropic(api_key=api_key.get_secret_value())
+        self.model = model
+
+    <span class="k">async def</span> <span class="f">chat</span>(self, prompt: str) -&gt; str:
+        response = <span class="k">await</span> self.client.messages.create(
+            model=self.model,
+            max_tokens=<span class="w">1024</span>,   <span class="c"># en Anthropic este parámetro es obligatorio</span>
+            messages=[{<span class="s">"role"</span>: <span class="s">"user"</span>, <span class="s">"content"</span>: prompt}])
+        <span class="c"># En Anthropic, content es una LISTA de bloques: el texto está en el primero</span>
+        <span class="k">return</span> response.content[<span class="w">0</span>].text
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># TODO 4: la fábrica. Decide qué cliente crear según el proveedor.</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">class</span> <span class="f">LLMFactory</span>:
+    <span class="k">@staticmethod</span>   <span class="c"># se llama sin crear un objeto: LLMFactory.create_client(...)</span>
+    <span class="k">def</span> <span class="f">create_client</span>(provider: Provider, config: LLMConfig) -&gt; BaseLLMClient:
+
+        <span class="k">if</span> provider == Provider.OPENAI:
+            <span class="c"># Validamos nosotros: un error claro y temprano, no uno del SDK</span>
+            <span class="k">if</span> config.openai_api_key <span class="k">is None</span>:
+                <span class="k">raise</span> ValueError(<span class="s">"Falta la API key de OpenAI (openai_api_key)"</span>)
+            <span class="k">return</span> OpenAIClient(config.openai_api_key)
+
+        <span class="k">if</span> provider == Provider.ANTHROPIC:
+            <span class="k">if</span> config.anthropic_api_key <span class="k">is None</span>:
+                <span class="k">raise</span> ValueError(<span class="s">"Falta la API key de Anthropic (anthropic_api_key)"</span>)
+            <span class="k">return</span> AnthropicClient(config.anthropic_api_key)
+
+        <span class="k">raise</span> ValueError(f<span class="s">"Proveedor no soportado: {provider}"</span>)
+
+
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="c"># TODO 5: programa principal</span>
+<span class="c"># ---------------------------------------------------------------------</span>
+<span class="k">async def</span> <span class="f">main</span>():
+    <span class="c"># Key de prueba: alcanza para CREAR el cliente sin gastar créditos.</span>
+    <span class="c"># A propósito, no cargamos la de Anthropic.</span>
+    config = LLMConfig(openai_api_key=SecretStr(<span class="s">"sk-dummy"</span>))
+    <span class="f">print</span>(<span class="s">"Configuración:"</span>, config)   <span class="c"># la clave sale tapada con asteriscos</span>
+
+    <span class="c"># Pedimos un cliente a la fábrica</span>
+    client = LLMFactory.create_client(Provider.OPENAI, config)
+    <span class="f">print</span>(<span class="s">"Cliente creado:"</span>, type(client).__name__)
+
+    <span class="c"># Con una key real, usarlo es igual para cualquier proveedor:</span>
+    <span class="c">#     respuesta = await client.chat("¿Qué es la entropía?")</span>
+
+    <span class="c"># Pedir Anthropic sin su key: tiene que saltar NUESTRO ValueError</span>
+    <span class="k">try</span>:
+        LLMFactory.create_client(Provider.ANTHROPIC, config)
+    <span class="k">except</span> ValueError <span class="k">as</span> e:
+        <span class="f">print</span>(<span class="s">"Error controlado:"</span>, e)
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    asyncio.<span class="f">run</span>(main())</pre>
+    </div>
+  </div>
+</section>
+
+<!-- 25 · Resumen -->
+<section class="slide">
+  <h2>Resumen de la clase</h2>
+  <ul>
+    <li>En IA el tiempo se va en <b>esperar</b>: <code>asyncio</code> aprovecha esas esperas (I/O-bound), no acelera cálculos (CPU-bound).</li>
+    <li><b>Corrutina</b> (<code>async def</code> / <code>await</code>): función que puede pausarse. <b>Event loop</b>: quien coordina. <b>Task</b>: corrutina ya en marcha.</li>
+    <li><code>asyncio.run()</code> como único punto de entrada; <code>gather</code> para esperar varias llamadas a la vez.</li>
+    <li><b>Timeouts</b> contra la espera infinita y <b>semáforos</b> contra el <code>429</code>.</li>
+    <li><b>Nunca bloquees el loop</b>: <code>await asyncio.sleep</code>, clientes async y <code>to_thread()</code> para lo síncrono.</li>
+    <li><b>Streaming</b>: mandar cada token apenas llega baja el TTFT.</li>
+    <li><b>Factory + interfaz común</b>: cambiar de proveedor sin tocar la app; <code>SecretStr</code> para que las claves no aparezcan en los logs.</li>
+  </ul>
+  <p class="sub">¿Preguntas?</p>
+</section>
+
+<!-- 26 · Pre-entrega 1: qué construir -->
+<section class="slide">
+  <span class="tag" style="align-self:flex-start">Pre-entrega 1</span>
+  <h2>Cliente de LLM robusto y asíncrono</h2>
+  <p>Vas a entregar un <b>"Unified Async LLM Client"</b>: una clase (o conjunto de clases) en Python 3.12 con cuatro capacidades.</p>
+  <div class="grid">
+    <div class="card"><h3>🔁 Intercambiabilidad</h3><p class="small">Instanciar <b>OpenAI o Anthropic</b> bajo una interfaz común.</p></div>
+    <div class="card"><h3>⚡ Asincronía</h3><p class="small">Todas las llamadas a modelos son <b>no bloqueantes</b> (<code>async</code>/<code>await</code>).</p></div>
+    <div class="card"><h3>🌊 Streaming</h3><p class="small">Un método que devuelve un <b>generador asíncrono</b> de tokens.</p></div>
+    <div class="card"><h3>✅ Validación</h3><p class="small"><b>Pydantic</b> para la estructura de los mensajes y la configuración del modelo.</p></div>
+  </div>
+<pre><span class="c"># Streaming: un generador asíncrono usa yield dentro de un async for</span>
+<span class="k">async def</span> <span class="f">stream</span>(self, prompt: str):
+    stream = <span class="k">await</span> self.client.chat.completions.create(
+        model=self.model, messages=[{<span class="s">"role"</span>: <span class="s">"user"</span>, <span class="s">"content"</span>: prompt}], stream=<span class="k">True</span>)
+    <span class="k">async for</span> chunk <span class="k">in</span> stream:                          <span class="c"># cada fragmento, apenas llega</span>
+        <span class="k">if</span> chunk.choices <span class="k">and</span> chunk.choices[<span class="w">0</span>].delta.content:
+            <span class="k">yield</span> chunk.choices[<span class="w">0</span>].delta.content          <span class="c"># lo entrega sin esperar al resto</span></pre>
+</section>
+
+<!-- 27 · Pre-entrega 1: pasos -->
+<section class="slide">
+  <h2>Pre-entrega 1: paso a paso</h2>
+  <table class="plain">
+    <tr><th>Paso</th><th>Qué hacer</th></tr>
+    <tr><td>1 · Entorno</td><td>Un entorno virtual con <b>Python 3.12</b> e instalar <code>openai</code>, <code>anthropic</code>, <code>pydantic</code> y <code>python-dotenv</code>.</td></tr>
+    <tr><td>2 · Esquemas</td><td>Un <code>schemas.py</code> con <code>ChatMessage</code> (<code>role</code>, <code>content</code>), <code>ModelResponse</code> y los parámetros del modelo validados (<b>temperatura de 0 a 2</b>, <code>max_tokens</code>, etc.).</td></tr>
+    <tr><td>3 · Base</td><td>Una clase abstracta <code>BaseLLMClient</code> con un método <code>async def generate()</code>.</td></tr>
+    <tr><td>4 · Proveedores</td><td><code>OpenAIClient</code> y <code>AnthropicClient</code> heredando de la base, con <code>AsyncOpenAI</code> y <code>AsyncAnthropic</code>.</td></tr>
+    <tr><td>5 · Manager</td><td>Una clase <code>AsyncLLMManager</code> que cargue OpenAI o Anthropic según <b>una variable de configuración</b>.</td></tr>
+    <tr><td>6 · Streaming</td><td>Un generador con <code>yield</code> dentro de un <code>async for</code> que recorra el stream del SDK.</td></tr>
+    <tr><td>7 · Errores</td><td>Capturar las excepciones de <b>red</b> y de <b>rate limit</b> y devolver un error controlado, no un crash.</td></tr>
+    <tr><td>8 · Prueba</td><td>Un <code>main.py</code> que cargue el <code>.env</code> y pregunte <b>"¿Qué es la entropía?"</b> en modo normal y en streaming.</td></tr>
+  </table>
+  <p class="note">Empezar por los esquemas evita el clásico <b>"error de diccionarios anidados"</b>: con Pydantic, un mensaje mal armado falla al crearlo, no tres funciones más adelante.</p>
+</section>
+
+<!-- 28 · Qué entregar -->
+<section class="slide">
+  <h2>Qué tenés que entregar</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Un repositorio de GitHub con:</h3>
+      <ul>
+        <li>1) Los <b>clientes async</b> (OpenAI + Anthropic)</li>
+        <li>2) <code>schemas.py</code> con los modelos <b>Pydantic</b></li>
+        <li>3) <code>.env.example</code> con los nombres de las variables</li>
+        <li>4) <code>main.py</code> que pruebe modo <b>normal y streaming</b></li>
+        <li>5) <code>README.md</code>: cómo correrlo y qué variables de entorno hacen falta</li>
+      </ul>
+    </div>
+    <div class="card bad">
+      <span class="tag bad">errores a evitar</span>
+      <ul class="small">
+        <li><b>Bloquear el event loop:</b> usar el cliente síncrono dentro de un <code>async def</code>. Frena todo el programa mientras el LLM "piensa". Usá <code>await client.chat.completions.create(...)</code> con el cliente async.</li>
+        <li><b>Fuga de excepciones:</b> que un "API key inválida" o "límite de cuota" rompa el loop principal. Capturá el error y devolvé un mensaje estructurado, o reintentá.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note"><b>Es código, no un informe:</b> no hace falta ningún documento ni PDF aparte. Toda la explicación va en el <code>README.md</code>. Y tu <code>.env</code> real <b>no se sube</b>: agregalo a <code>.gitignore</code>.</p>
+</section>
+
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  // Envuelve el contenido de cada slide para poder escalarlo como un bloque
+  slides.forEach(sl => {
+    const w = document.createElement('div');
+    w.className = 'fit';
+    while (sl.firstChild) w.appendChild(sl.firstChild);
+    sl.appendChild(w);
+  });
+  function fit(sl){
+    const w = sl.querySelector('.fit');
+    if (!w) return;
+    if (sl.classList.contains('scroll')) { w.style.zoom = 1; return; }
+    const overflows = () => sl.scrollHeight > sl.clientHeight + 1 || sl.scrollWidth > sl.clientWidth + 1 ||
+      [...w.querySelectorAll('pre,table')].some(e => e.scrollWidth > e.clientWidth + 1);
+    let z = 1;
+    const apply = () => { w.style.zoom = z; };
+    apply();
+    while (overflows() && z > 0.4) { z = Math.round((z - 0.03) * 100) / 100; apply(); }
+  }
+  const sections = [
+    {name:'Por qué async',   from:2,  to:5},
+    {name:'Fundamentos',     from:6,  to:8},
+    {name:'Patrones',        from:9,  to:12},
+    {name:'Anti-patrones',   from:13, to:15},
+    {name:'Ejemplo resuelto',from:16, to:19},
+    {name:'Clientes',        from:20, to:21},
+    {name:'Ejercicio',       from:22, to:25},
+    {name:'Pre-entrega 1',   from:26, to:28}
+  ];
+  let i = 0;
+  const bar = document.getElementById('bar'), count = document.getElementById('count');
+  const nav = document.getElementById('nav');
+  sections.forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = s.name;
+    b.onclick = () => show(s.from - 1);
+    nav.appendChild(b);
+  });
+  function show(n){
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    fit(slides[i]);
+    bar.style.width = ((i + 1) / slides.length * 100) + '%';
+    count.textContent = (i + 1) + ' / ' + slides.length;
+    [...nav.children].forEach((b, k) => b.classList.toggle('active', i + 1 >= sections[k].from && i + 1 <= sections[k].to));
+    try { history.replaceState(null, '', '#' + (i + 1)); } catch(e) {}
+  }
+  function toggleTheme(){
+    const root = document.documentElement;
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('curso-theme', next); } catch(e) {}
+  }
+  document.getElementById('theme').onclick = toggleTheme;
+  // Lleva el tema actual (claro/oscuro) a la página siguiente
+  function conTema(url){
+    const t = document.documentElement.getAttribute('data-theme') || 'light';
+    return url + (url.includes('?') ? '&' : '?') + 'tema=' + t;
+  }
+  document.querySelectorAll('a.to-index').forEach(a => a.addEventListener('click', ev => {
+    ev.preventDefault(); location.href = conTema('index.html');
+  }));
+  document.getElementById('prev').onclick = () => show(i - 1);
+  document.getElementById('next').onclick = () => show(i + 1);
+  document.addEventListener('keydown', e => {
+    if (['ArrowRight','PageDown',' '].includes(e.key)) { e.preventDefault(); show(i + 1); }
+    else if (['ArrowLeft','PageUp'].includes(e.key)) { e.preventDefault(); show(i - 1); }
+    else if (e.key.toLowerCase() === 't') toggleTheme();
+    else if (e.key.toLowerCase() === 'i') location.href = conTema('index.html');
+    else if (e.key === 'Home') show(0);
+    else if (e.key === 'End') show(slides.length - 1);
+    else if (e.key.toLowerCase() === 'f') {
+      document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+    }
+  });
+  show((parseInt(location.hash.slice(1)) || 1) - 1);
+  window.addEventListener('resize', () => fit(slides[i]));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fit(slides[i]));
+</script>
+</body>
+</html>
